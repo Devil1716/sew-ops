@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { FactoriesModule } from './factories/factories.module';
 import { HealthController } from './health/health.controller';
+import { LinesModule } from './lines/lines.module';
+import { MachinesModule } from './machines/machines.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -11,9 +16,16 @@ import { PrismaModule } from './prisma/prisma.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    AuditModule,
     AuthModule,
+    FactoriesModule,
+    LinesModule,
+    MachinesModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: PrismaExceptionFilter },
+  ],
 })
 export class AppModule {}

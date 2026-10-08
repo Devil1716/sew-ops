@@ -17,7 +17,7 @@ import {
   REFRESH_COOKIE,
   REFRESH_TTL_DAYS,
 } from './auth.constants';
-import { CurrentUser, Public } from './auth.decorators';
+import { CurrentUser, Public, Roles } from './auth.decorators';
 import { AuthService } from './auth.service';
 import type { AuthUser, ClientMeta } from './auth.types';
 
@@ -70,6 +70,7 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Roles('admin', 'manager', 'operator')
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
     const { sessionId: _sessionId, ...publicUser } = user;
