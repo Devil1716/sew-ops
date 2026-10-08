@@ -210,7 +210,13 @@ export class ProductionService {
         return { duplicate: false, event: toDto(reversal), workOrder };
       });
     } catch (e) {
-      if (isUniqueViolation(e)) throw new ConflictException('This event was already undone.');
+      if (isUniqueViolation(e)) {
+        const reversal = await this.prisma.productionEvent.findUnique({
+          where: { reversesEventId: original.id },
+        });
+        if (reversal) return this.undoResult(reversal, original.workOrderId, true);
+        throw new ConflictException('This event was already undone.');
+      }
       throw e;
     }
   }
