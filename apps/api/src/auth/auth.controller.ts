@@ -15,16 +15,23 @@ import {
   ACCESS_COOKIE,
   ACCESS_TTL_SECONDS,
   REFRESH_COOKIE,
-  REFRESH_TTL_DAYS,
 } from './auth.constants';
 import { CurrentUser, Public, Roles } from './auth.decorators';
-import { AuthService } from './auth.service';
+import { AuthService, sessionTtlMs } from './auth.service';
 import type { AuthUser, ClientMeta } from './auth.types';
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   password: z.string().min(1).max(200),
 });
+
+const operatorLoginSchema = z
+  .object({
+    machineCode: z.string().trim().toUpperCase().min(1).max(20),
+    factoryCode: z.string().trim().toUpperCase().min(1).max(20).optional(),
+    pin: z.string().regex(/^\d{6}$/),
+  })
+  .strict();
 
 const REFRESH_PATH = '/v1/auth';
 
@@ -45,8 +52,25 @@ export class AuthController {
     if (!parsed.success) throw new BadRequestException('Email and password are required.');
 
     const result = await this.auth.login(parsed.data.email, parsed.data.password, this.meta(req));
-    this.setCookies(res, result.accessToken, result.refreshToken);
+    this.setCookies(res, result.accessToken, result.refreshToken, sessionTtlMs(result.user.role));
     return { user: result.user };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('operator-login')
+  @HttpCode(200)
+  async operatorLogin(
+    @Body() body: unknown,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const parsed = operatorLoginSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Machine code and a 6-digit PIN are required.');
+
+    const result = await this.auth.operatorLogin(parsed.data, this.meta(req));
+    this.setCookies(res, result.accessToken, result.refreshToken, sessionTtlMs('operator'));
+    return { user: result.user, station: result.station };
   }
 
   @Public()
@@ -56,7 +80,7 @@ export class AuthController {
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const cookies = req.cookies as Record<string, string> | undefined;
     const result = await this.auth.refresh(cookies?.[REFRESH_COOKIE], this.meta(req));
-    this.setCookies(res, result.accessToken, result.refreshToken);
+    this.setCookies(res, result.accessToken, result.refreshToken, sessionTtlMs(result.user.role));
     return { user: result.user };
   }
 
@@ -91,7 +115,7 @@ export class AuthController {
     };
   }
 
-  private setCookies(res: Response, accessToken: string, refreshToken: string) {
+  private setCookies(res: Response, accessToken: string, refreshToken: string, refreshMaxAgeMs: number) {
     res.cookie(ACCESS_COOKIE, accessToken, {
       ...this.cookieBase(),
       path: '/',
@@ -100,7 +124,7 @@ export class AuthController {
     res.cookie(REFRESH_COOKIE, refreshToken, {
       ...this.cookieBase(),
       path: REFRESH_PATH,
-      maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
+      maxAge: refreshMaxAgeMs,
     });
   }
 

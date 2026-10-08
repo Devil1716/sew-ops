@@ -13,6 +13,7 @@ import { MachinesModule } from './machines/machines.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ShiftsModule } from './shifts/shifts.module';
 import { UsersModule } from './users/users.module';
+import { WorkOrdersModule } from './work-orders/work-orders.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     ShiftsModule,
     AssignmentsModule,
+    WorkOrdersModule,
   ],
   controllers: [HealthController],
   providers: [

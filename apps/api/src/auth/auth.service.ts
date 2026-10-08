@@ -2,29 +2,33 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { hash, verify } from '@node-rs/argon2';
-import type { Role } from '@prisma/client';
+import type { Prisma, Role } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
+import { findCurrentShift, localClock } from '../common/shift-time';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ACCESS_TTL_SECONDS,
   GENERIC_LOGIN_ERROR,
   LOCK_MINUTES,
   MAX_FAILED_LOGINS,
+  OPERATOR_SESSION_HOURS,
   REFRESH_TTL_DAYS,
 } from './auth.constants';
 import type { AuthUser, ClientMeta, PublicUser } from './auth.types';
 
-type UserWithFactories = {
-  id: string;
-  name: string;
-  email: string | null;
-  role: Role;
-  factories: { factoryId: string }[];
-};
+type UserWithFactories = Prisma.UserGetPayload<{
+  include: { factories: { select: { factoryId: true } } };
+}>;
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 const newRefreshToken = () => randomBytes(32).toString('base64url');
-const refreshExpiry = () => new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+export const sessionTtlMs = (role: Role) =>
+  role === 'operator'
+    ? OPERATOR_SESSION_HOURS * 60 * 60 * 1000
+    : REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000;
+
+const sessionExpiry = (role: Role) => new Date(Date.now() + sessionTtlMs(role));
 
 @Injectable()
 export class AuthService {
@@ -41,6 +45,8 @@ export class AuthService {
       throw new Error('JWT_ACCESS_SECRET must be at least 32 characters');
     }
   }
+
+  // ---------- managers and admins: email + password ----------
 
   async login(email: string, password: string, meta: ClientMeta) {
     const user = await this.prisma.user.findUnique({
@@ -66,7 +72,7 @@ export class AuthService {
       data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
     });
 
-    const { sessionId, refreshToken } = await this.createSession(user.id, meta);
+    const { sessionId, refreshToken } = await this.createSession(user.id, user.role, meta);
     const accessToken = await this.signAccess(user.id, user.role, sessionId);
 
     await this.prisma.auditLog.create({
@@ -82,6 +88,100 @@ export class AuthService {
 
     return { accessToken, refreshToken, user: this.toPublic(user) };
   }
+
+  // ---------- operators: machine code + PIN ----------
+
+  async operatorLogin(
+    input: { machineCode: string; factoryCode?: string; pin: string },
+    meta: ClientMeta,
+  ) {
+    const machines = await this.prisma.machine.findMany({
+      where: {
+        code: input.machineCode,
+        isActive: true,
+        factory: { isActive: true, ...(input.factoryCode ? { code: input.factoryCode } : {}) },
+      },
+      include: { factory: true, line: true },
+      take: 2,
+    });
+    // Ambiguous code across factories: require factoryCode.
+    const machine = machines.length === 1 ? machines[0] : null;
+
+    let user: UserWithFactories | null = null;
+    let shiftInfo: { id: string; name: string } | null = null;
+
+    if (machine) {
+      const shifts = await this.prisma.shift.findMany({
+        where: { factoryId: machine.factoryId, isActive: true },
+      });
+      const current = findCurrentShift(shifts, localClock(machine.factory.timezone));
+      if (current) {
+        const businessDate = new Date(`${current.businessDate}T00:00:00.000Z`);
+        const assignment = await this.prisma.operatorAssignment.findFirst({
+          where: {
+            machineId: machine.id,
+            shiftId: current.shift.id,
+            startDate: { lte: businessDate },
+            OR: [{ endDate: null }, { endDate: { gte: businessDate } }],
+          },
+          include: { user: { include: { factories: { select: { factoryId: true } } } } },
+        });
+        if (assignment) {
+          user = assignment.user;
+          shiftInfo = { id: current.shift.id, name: current.shift.name };
+        }
+      }
+    }
+
+    let ok = false;
+    const lockedNow = !!user?.lockedUntil && user.lockedUntil > new Date();
+
+    if (user && user.pinHash && user.isActive && user.role === 'operator' && !lockedNow) {
+      ok = await this.safeVerify(user.pinHash, input.pin);
+      if (!ok) await this.recordFailure(user.id);
+    } else {
+      await this.safeVerify(await this.getDummyHash(), input.pin);
+    }
+
+    if (!ok || !user || !machine || !shiftInfo) throw new UnauthorizedException(GENERIC_LOGIN_ERROR);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
+    });
+
+    const { sessionId, refreshToken } = await this.createSession(user.id, user.role, meta);
+    const accessToken = await this.signAccess(user.id, user.role, sessionId);
+
+    await this.prisma.auditLog.create({
+      data: {
+        factoryId: machine.factoryId,
+        actorId: user.id,
+        action: 'auth.operator_login',
+        entityType: 'machine',
+        entityId: machine.id,
+        ipAddress: meta.ip,
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: this.toPublic(user),
+      station: {
+        machineId: machine.id,
+        machineCode: machine.code,
+        machineName: machine.name,
+        lineId: machine.line.id,
+        lineCode: machine.line.code,
+        lineName: machine.line.name,
+        shiftId: shiftInfo.id,
+        shiftName: shiftInfo.name,
+      },
+    };
+  }
+
+  // ---------- shared session handling ----------
 
   async refresh(rawToken: string | undefined, meta: ClientMeta) {
     if (!rawToken) throw new UnauthorizedException();
@@ -101,7 +201,8 @@ export class AuthService {
       where: { id: session.id, refreshTokenHash: oldHash, revokedAt: null },
       data: {
         refreshTokenHash: sha256(newToken),
-        expiresAt: refreshExpiry(),
+        // Operators keep a hard 12-hour cap from the original login; staff slide forward.
+        ...(session.user.role === 'operator' ? {} : { expiresAt: sessionExpiry(session.user.role) }),
         userAgent: meta.userAgent?.slice(0, 300) ?? null,
         ipAddress: meta.ip,
       },
@@ -162,7 +263,7 @@ export class AuthService {
 
   // ---------- helpers ----------
 
-  private async createSession(userId: string, meta: ClientMeta) {
+  private async createSession(userId: string, role: Role, meta: ClientMeta) {
     const refreshToken = newRefreshToken();
     const session = await this.prisma.authSession.create({
       data: {
@@ -170,7 +271,7 @@ export class AuthService {
         refreshTokenHash: sha256(refreshToken),
         userAgent: meta.userAgent?.slice(0, 300) ?? null,
         ipAddress: meta.ip,
-        expiresAt: refreshExpiry(),
+        expiresAt: sessionExpiry(role),
       },
     });
     return { sessionId: session.id, refreshToken };
