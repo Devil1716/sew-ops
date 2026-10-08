@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, Roles } from '../auth/auth.decorators';
 import type { AuthUser } from '../auth/auth.types';
 import { ClientIp } from '../common/client-ip.decorator';
+import { RealtimeService } from '../realtime/realtime.service';
 import { ProductionService } from './production.service';
 import { StationService } from './station.service';
 
@@ -11,22 +12,29 @@ const TERMINAL_LIMIT = { default: { limit: 1200, ttl: 60_000 } };
 
 @Controller('production')
 export class ProductionController {
-  constructor(private readonly production: ProductionService) {}
+  constructor(
+    private readonly production: ProductionService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   @Roles('operator')
   @Throttle(TERMINAL_LIMIT)
   @Post('events')
   @HttpCode(200)
-  record(@CurrentUser() user: AuthUser, @Body() body: unknown) {
-    return this.production.recordPiece(user, body);
+  async record(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+    const result = await this.production.recordPiece(user, body);
+    void this.realtime.pieceChanged(result); // after commit; never delays or fails the response
+    return result;
   }
 
   @Roles('operator', 'manager', 'admin')
   @Throttle(TERMINAL_LIMIT)
   @Post('events/undo')
   @HttpCode(200)
-  undo(@CurrentUser() user: AuthUser, @Body() body: unknown, @ClientIp() ip: string | null) {
-    return this.production.undo(user, body, ip);
+  async undo(@CurrentUser() user: AuthUser, @Body() body: unknown, @ClientIp() ip: string | null) {
+    const result = await this.production.undo(user, body, ip);
+    void this.realtime.pieceChanged(result);
+    return result;
   }
 
   @Roles('admin', 'manager')

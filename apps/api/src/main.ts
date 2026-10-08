@@ -3,6 +3,8 @@ import { Logger } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { allowedOrigins } from './common/origins';
+import { SocketAdapter } from './realtime/socket.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,10 +12,8 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
   app.setGlobalPrefix('v1', { exclude: ['health'] });
-  app.enableCors({
-    origin: (process.env.CORS_ORIGIN ?? '').split(',').filter(Boolean),
-    credentials: true,
-  });
+  app.enableCors({ origin: allowedOrigins(), credentials: true });
+  app.useWebSocketAdapter(new SocketAdapter(app));
   app.enableShutdownHooks();
 
   const port = Number(process.env.PORT ?? 4000);
