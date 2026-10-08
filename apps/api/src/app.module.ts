@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AssignmentsModule } from './assignments/assignments.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
@@ -10,6 +11,8 @@ import { HealthController } from './health/health.controller';
 import { LinesModule } from './lines/lines.module';
 import { MachinesModule } from './machines/machines.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ShiftsModule } from './shifts/shifts.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { PrismaModule } from './prisma/prisma.module';
     FactoriesModule,
     LinesModule,
     MachinesModule,
+    UsersModule,
+    ShiftsModule,
+    AssignmentsModule,
   ],
   controllers: [HealthController],
   providers: [
