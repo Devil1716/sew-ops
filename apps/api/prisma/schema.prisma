@@ -1,0 +1,448 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums (values match packages/shared/src/enums.ts) ----------
+
+enum Role {
+  admin
+  manager
+  operator
+}
+
+enum MachineStatus {
+  running
+  idle
+  breakdown
+  maintenance
+  offline
+}
+
+enum IssueType {
+  machine_issue
+  thread_empty
+  material_missing
+  quality_issue
+  break_pause
+  other
+}
+
+enum IssueSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum IssueStatus {
+  open
+  acknowledged
+  resolved
+}
+
+enum WorkOrderStatus {
+  scheduled
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum ProductionEventType {
+  piece_completed
+  pieces_undo
+}
+
+// ---------- Tenancy and people ----------
+
+model Factory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  code      String   @unique
+  timezone  String   @default("Asia/Kolkata")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users                UserFactory[]
+  lines                Line[]
+  machines             Machine[]
+  shifts               Shift[]
+  workOrders           WorkOrder[]
+  workOrderAssignments WorkOrderAssignment[]
+  operatorAssignments  OperatorAssignment[]
+  productionEvents     ProductionEvent[]
+  issues               Issue[]
+  downtimeEvents       DowntimeEvent[]
+  qualityChecks        QualityCheck[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  settings             FactorySetting[]
+
+  @@map("factories")
+}
+
+model User {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  email            String?   @unique
+  passwordHash     String?   @map("password_hash")
+  employeeCode     String?   @unique @map("employee_code")
+  pinHash          String?   @map("pin_hash")
+  role             Role
+  isActive         Boolean   @default(true) @map("is_active")
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt      DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factories           UserFactory[]
+  sessions            AuthSession[]
+  operatorAssignments OperatorAssignment[]
+  productionEvents    ProductionEvent[]
+  issuesOpened        Issue[]              @relation("IssueOpenedBy")
+  issuesAcknowledged  Issue[]              @relation("IssueAcknowledgedBy")
+  issuesResolved      Issue[]              @relation("IssueResolvedBy")
+  qualityChecks       QualityCheck[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model UserFactory {
+  userId    String   @map("user_id") @db.Uuid
+  factoryId String   @map("factory_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factory Factory @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, factoryId])
+  @@index([factoryId])
+  @@map("user_factories")
+}
+
+model AuthSession {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  userAgent        String?   @map("user_agent")
+  ipAddress        String?   @map("ip_address")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
+// ---------- Factory structure ----------
+
+model Line {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId      String   @map("factory_id") @db.Uuid
+  name           String
+  code           String
+  targetPerShift Int      @default(0) @map("target_per_shift")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory              Factory               @relation(fields: [factoryId], references: [id])
+  machines             Machine[]
+  workOrderAssignments WorkOrderAssignment[]
+  productionEvents     ProductionEvent[]
+  issues               Issue[]
+
+  @@unique([factoryId, code])
+  @@map("lines")
+}
+
+model Machine {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId   String        @map("factory_id") @db.Uuid
+  lineId      String        @map("line_id") @db.Uuid
+  name        String
+  code        String
+  model       String?
+  status      MachineStatus @default(offline)
+  statusSince DateTime      @default(now()) @map("status_since") @db.Timestamptz(6)
+  lastEventAt DateTime?     @map("last_event_at") @db.Timestamptz(6)
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory              Factory               @relation(fields: [factoryId], references: [id])
+  line                 Line                  @relation(fields: [lineId], references: [id])
+  operatorAssignments  OperatorAssignment[]
+  workOrderAssignments WorkOrderAssignment[]
+  productionEvents     ProductionEvent[]
+  issues               Issue[]
+  downtimeEvents       DowntimeEvent[]
+  qualityChecks        QualityCheck[]
+
+  @@unique([factoryId, code])
+  @@index([lineId])
+  @@index([factoryId, status])
+  @@map("machines")
+}
+
+model Shift {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId String   @map("factory_id") @db.Uuid
+  name      String
+  startsAt  String   @map("starts_at") @db.VarChar(5)
+  endsAt    String   @map("ends_at") @db.VarChar(5)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory              Factory               @relation(fields: [factoryId], references: [id])
+  operatorAssignments  OperatorAssignment[]
+  workOrderAssignments WorkOrderAssignment[]
+
+  @@unique([factoryId, name])
+  @@map("shifts")
+}
+
+model OperatorAssignment {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId String    @map("factory_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  machineId String    @map("machine_id") @db.Uuid
+  shiftId   String    @map("shift_id") @db.Uuid
+  startDate DateTime  @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factory Factory @relation(fields: [factoryId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  machine Machine @relation(fields: [machineId], references: [id])
+  shift   Shift   @relation(fields: [shiftId], references: [id])
+
+  @@unique([machineId, shiftId, startDate])
+  @@index([userId])
+  @@index([factoryId])
+  @@map("operator_assignments")
+}
+
+// ---------- Work orders ----------
+
+model WorkOrder {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId         String          @map("factory_id") @db.Uuid
+  orderNumber       String          @map("order_number")
+  styleCode         String          @map("style_code")
+  garment           String
+  quantityTarget    Int             @map("quantity_target")
+  quantityCompleted Int             @default(0) @map("quantity_completed")
+  status            WorkOrderStatus @default(scheduled)
+  plannedStart      DateTime        @map("planned_start") @db.Timestamptz(6)
+  plannedEnd        DateTime?       @map("planned_end") @db.Timestamptz(6)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory          Factory               @relation(fields: [factoryId], references: [id])
+  assignments      WorkOrderAssignment[]
+  productionEvents ProductionEvent[]
+  issues           Issue[]
+  qualityChecks    QualityCheck[]
+
+  @@unique([factoryId, orderNumber])
+  @@index([factoryId, status])
+  @@map("work_orders")
+}
+
+model WorkOrderAssignment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId   String   @map("factory_id") @db.Uuid
+  workOrderId String   @map("work_order_id") @db.Uuid
+  lineId      String   @map("line_id") @db.Uuid
+  machineId   String?  @map("machine_id") @db.Uuid
+  shiftId     String?  @map("shift_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factory   Factory   @relation(fields: [factoryId], references: [id])
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
+  line      Line      @relation(fields: [lineId], references: [id])
+  machine   Machine?  @relation(fields: [machineId], references: [id])
+  shift     Shift?    @relation(fields: [shiftId], references: [id])
+
+  @@index([workOrderId])
+  @@index([lineId])
+  @@index([machineId])
+  @@map("work_order_assignments")
+}
+
+// ---------- Events (append-only history) ----------
+
+model ProductionEvent {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId       String              @map("factory_id") @db.Uuid
+  machineId       String              @map("machine_id") @db.Uuid
+  lineId          String              @map("line_id") @db.Uuid
+  workOrderId     String              @map("work_order_id") @db.Uuid
+  operatorId      String?             @map("operator_id") @db.Uuid
+  type            ProductionEventType
+  quantity        Int
+  idempotencyKey  String              @map("idempotency_key")
+  reversesEventId String?             @unique @map("reverses_event_id") @db.Uuid
+  occurredAt      DateTime            @map("occurred_at") @db.Timestamptz(6)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factory    Factory           @relation(fields: [factoryId], references: [id])
+  machine    Machine           @relation(fields: [machineId], references: [id])
+  line       Line              @relation(fields: [lineId], references: [id])
+  workOrder  WorkOrder         @relation(fields: [workOrderId], references: [id])
+  operator   User?             @relation(fields: [operatorId], references: [id])
+  reverses   ProductionEvent?  @relation("EventUndo", fields: [reversesEventId], references: [id])
+  reversedBy ProductionEvent[] @relation("EventUndo")
+
+  @@unique([factoryId, idempotencyKey])
+  @@index([factoryId, occurredAt])
+  @@index([machineId, occurredAt])
+  @@index([workOrderId])
+  @@map("production_events")
+}
+
+model Issue {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId        String        @map("factory_id") @db.Uuid
+  machineId        String        @map("machine_id") @db.Uuid
+  lineId           String        @map("line_id") @db.Uuid
+  workOrderId      String?       @map("work_order_id") @db.Uuid
+  type             IssueType
+  severity         IssueSeverity @default(medium)
+  status           IssueStatus   @default(open)
+  note             String?
+  resolutionNote   String?       @map("resolution_note")
+  idempotencyKey   String        @map("idempotency_key")
+  openedAt         DateTime      @default(now()) @map("opened_at") @db.Timestamptz(6)
+  acknowledgedAt   DateTime?     @map("acknowledged_at") @db.Timestamptz(6)
+  resolvedAt       DateTime?     @map("resolved_at") @db.Timestamptz(6)
+  openedById       String?       @map("opened_by_id") @db.Uuid
+  acknowledgedById String?       @map("acknowledged_by_id") @db.Uuid
+  resolvedById     String?       @map("resolved_by_id") @db.Uuid
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory        Factory        @relation(fields: [factoryId], references: [id])
+  machine        Machine        @relation(fields: [machineId], references: [id])
+  line           Line           @relation(fields: [lineId], references: [id])
+  workOrder      WorkOrder?     @relation(fields: [workOrderId], references: [id])
+  openedBy       User?          @relation("IssueOpenedBy", fields: [openedById], references: [id])
+  acknowledgedBy User?          @relation("IssueAcknowledgedBy", fields: [acknowledgedById], references: [id])
+  resolvedBy     User?          @relation("IssueResolvedBy", fields: [resolvedById], references: [id])
+  downtimeEvent  DowntimeEvent?
+
+  @@unique([factoryId, idempotencyKey])
+  @@index([factoryId, status])
+  @@index([machineId, openedAt])
+  @@map("issues")
+}
+
+model DowntimeEvent {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId String    @map("factory_id") @db.Uuid
+  machineId String    @map("machine_id") @db.Uuid
+  issueId   String?   @unique @map("issue_id") @db.Uuid
+  reason    IssueType
+  planned   Boolean   @default(false)
+  startedAt DateTime  @map("started_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory Factory @relation(fields: [factoryId], references: [id])
+  machine Machine @relation(fields: [machineId], references: [id])
+  issue   Issue?  @relation(fields: [issueId], references: [id])
+
+  @@index([machineId, startedAt])
+  @@index([factoryId, startedAt])
+  @@map("downtime_events")
+}
+
+model QualityCheck {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId   String   @map("factory_id") @db.Uuid
+  workOrderId String   @map("work_order_id") @db.Uuid
+  machineId   String?  @map("machine_id") @db.Uuid
+  inspectorId String?  @map("inspector_id") @db.Uuid
+  inspectedQty Int     @map("inspected_qty")
+  rejectedQty Int      @map("rejected_qty")
+  defectType  String?  @map("defect_type")
+  note        String?
+  checkedAt   DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factory   Factory   @relation(fields: [factoryId], references: [id])
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id])
+  machine   Machine?  @relation(fields: [machineId], references: [id])
+  inspector User?     @relation(fields: [inspectorId], references: [id])
+
+  @@index([factoryId, checkedAt])
+  @@index([workOrderId])
+  @@map("quality_checks")
+}
+
+// ---------- Alerts, audit, settings ----------
+
+model Notification {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId  String    @map("factory_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  title      String
+  body       String
+  entityType String?   @map("entity_type")
+  entityId   String?   @map("entity_id")
+  readAt     DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factory Factory @relation(fields: [factoryId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId  String?  @map("factory_id") @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factory Factory? @relation(fields: [factoryId], references: [id])
+  actor   User?    @relation(fields: [actorId], references: [id])
+
+  @@index([factoryId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model FactorySetting {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId String   @map("factory_id") @db.Uuid
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  factory Factory @relation(fields: [factoryId], references: [id])
+
+  @@unique([factoryId, key])
+  @@map("factory_settings")
+}
