@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { FactoriesModule } from './factories/factories.module';
 import { HealthController } from './health/health.controller';
+import { IssuesModule } from './issues/issues.module';
 import { LinesModule } from './lines/lines.module';
 import { MachinesModule } from './machines/machines.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -31,6 +32,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
     AssignmentsModule,
     WorkOrdersModule,
     ProductionModule,
+    IssuesModule,
   ],
   controllers: [HealthController],
   providers: [
