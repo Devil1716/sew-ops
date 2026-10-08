@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design tokens: "Precision thread" ---------- */
+:root {
+  --bg: #f6f4f0; /* warm paper */
+  --surface: #ffffff;
+  --border: #e3dfd8;
+  --text: #12151a;
+  --muted: #6b6f76;
+  --accent: #ff5a1f; /* thread */
+  --accent-foreground: #ffffff;
+
+  --status-running: #16a34a;
+  --status-idle: #ca8a04;
+  --status-breakdown: #dc2626;
+  --status-maintenance: #2563eb;
+  --status-offline: #6b7280;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-1: 0 1px 2px rgb(18 21 26 / 0.06);
+  --shadow-2: 0 4px 16px rgb(18 21 26 / 0.08);
+  --shadow-3: 0 12px 40px rgb(18 21 26 / 0.12);
+}
+
+.dark {
+  --bg: #0b0d10;
+  --surface: #12151a;
+  --border: #232830;
+  --text: #edebe6;
+  --muted: #8a8f98;
+  --accent: #ff6b35;
+  --accent-foreground: #0b0d10;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 16px rgb(0 0 0 / 0.5);
+  --shadow-3: 0 12px 40px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-status-running: var(--status-running);
+  --color-status-idle: var(--status-idle);
+  --color-status-breakdown: var(--status-breakdown);
+  --color-status-maintenance: var(--status-maintenance);
+  --color-status-offline: var(--status-offline);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-3: var(--shadow-3);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument), Georgia, serif;
+}
+
+/* ---------- Base ---------- */
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Intentional "morphisms" (used sparingly) ---------- */
+/* Glass: public nav + floating cards over 3D only */
+.glass {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+.dark .glass {
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+
+/* Flat app surface with soft inner highlight */
+.app-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+/* Tactile operator button (skeuomorphic press) */
+.tactile {
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 6px 0 rgb(0 0 0 / 0.35),
+    var(--shadow-2);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+.tactile:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 2px 0 rgb(0 0 0 / 0.35),
+    var(--shadow-1);
+}
+
+/* Fabric grain overlay for hero accents (3% noise) */
+.grain {
+  position: relative;
+}
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hairline {
+  border-color: var(--border);
+}
+.font-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status dot pulse */
+@keyframes sew-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 5px transparent;
+    opacity: 0.75;
+  }
+}
+.pulse-dot {
+  animation: sew-pulse 1.8s ease-in-out infinite;
+}
+
+/* Row flash when new realtime data lands */
+@keyframes sew-flash {
+  from {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+.row-flash {
+  animation: sew-flash 900ms ease-out;
+}
+
+/* Success pulse on the big operator button */
+@keyframes sew-success {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-running) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 28px transparent;
+  }
+}
+.success-pulse {
+  animation: sew-success 600ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .pulse-dot,
+  .row-flash,
+  .success-pulse {
+    animation: none;
+  }
+}

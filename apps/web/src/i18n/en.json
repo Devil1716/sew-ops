@@ -1,0 +1,158 @@
+{
+  "common": {
+    "appName": "SewOps",
+    "loading": "Loading",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "search": "Search",
+    "empty": "Nothing here yet",
+    "error": "Something went wrong",
+    "live": "Live",
+    "reconnecting": "Reconnecting",
+    "offline": "Offline",
+    "undo": "Undo",
+    "theme": "Toggle theme",
+    "optionalNote": "Add a note (optional)"
+  },
+  "nav": {
+    "product": "Product",
+    "features": "Features",
+    "howItWorks": "How it works",
+    "roles": "Roles",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "login": "Log in",
+    "requestAccess": "Request access",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "hero": {
+    "headlineA": "Every stitch,",
+    "headlineAccent": "counted.",
+    "subline": "One tap on the floor becomes live truth in the office. Production, downtime and quality — recorded at the needle, not at the end of the shift.",
+    "primaryCta": "Request access",
+    "secondaryCta": "See how it works"
+  },
+  "sections": {
+    "problem": {
+      "line1": "Paper tallies get lost.",
+      "line2": "End-of-shift counts arrive too late.",
+      "line3": "Downtime has no owner.",
+      "line4": "Decisions run on yesterday's numbers."
+    },
+    "how": {
+      "title": "How it works",
+      "stage1Title": "Operator taps",
+      "stage1Body": "One button. Piece completed, thread empty, machine down.",
+      "stage2Title": "Backend records",
+      "stage2Body": "Every event is stored with idempotency and audit trail.",
+      "stage3Title": "Manager sees live",
+      "stage3Body": "Dashboards update the moment the needle stops.",
+      "stage4Title": "Report generated",
+      "stage4Body": "Shift, line and factory reports build themselves."
+    },
+    "roles": {
+      "title": "Built for every role",
+      "admin": "Admin",
+      "manager": "Manager",
+      "operator": "Operator"
+    },
+    "features": { "title": "Features" },
+    "security": {
+      "title": "Reliability by default",
+      "offline": "Offline-first sync",
+      "audit": "Full audit log",
+      "access": "Role-based access"
+    },
+    "cta": {
+      "title": "Thread your floor into one line of truth.",
+      "button": "Request access"
+    }
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "operatorTitle": "Operator sign-in",
+    "machineCode": "Machine code",
+    "pin": "PIN",
+    "pinSubmit": "Start shift"
+  },
+  "app": {
+    "dashboard": "Dashboard",
+    "lines": "Lines",
+    "machines": "Machines",
+    "workOrders": "Work Orders",
+    "issues": "Issues",
+    "downtime": "Downtime",
+    "quality": "Quality",
+    "reports": "Reports",
+    "notifications": "Notifications",
+    "factories": "Factories",
+    "users": "Users",
+    "shifts": "Shifts",
+    "assignments": "Operator assignments",
+    "settings": "Settings",
+    "auditLog": "Audit log",
+    "commandPalette": "Command palette",
+    "help": "Help",
+    "shortcuts": "Keyboard shortcuts",
+    "docs": "Documentation",
+    "reportProblem": "Report a problem",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
+  },
+  "dashboard": {
+    "target": "Target",
+    "completed": "Completed",
+    "remaining": "Remaining",
+    "machinesActive": "Machines active",
+    "machinesStopped": "Machines stopped",
+    "issuesToday": "Issues today",
+    "lineProgress": "Line progress",
+    "machineBoard": "Machine board",
+    "liveIssues": "Live issues",
+    "outputTrend": "Output trend",
+    "downtimeBreakdown": "Downtime breakdown",
+    "emptyTitle": "No production data yet",
+    "emptyBody": "When operators start recording pieces, this dashboard comes alive.",
+    "emptyAction": "Open work orders",
+    "filterDate": "Date",
+    "filterLine": "Line",
+    "filterMachine": "Machine",
+    "filterGarment": "Garment",
+    "filterShift": "Shift"
+  },
+  "status": {
+    "running": "Running",
+    "idle": "Idle",
+    "breakdown": "Breakdown",
+    "maintenance": "Maintenance",
+    "offline": "Offline"
+  },
+  "issue": {
+    "machineIssue": "Machine issue",
+    "threadEmpty": "Thread empty",
+    "materialMissing": "Material missing",
+    "qualityIssue": "Quality issue",
+    "breakPause": "Break / Pause",
+    "other": "Other"
+  },
+  "operator": {
+    "pieceCompleted": "Piece completed",
+    "recorded": "Recorded successfully",
+    "undoWindow": "Tap undo within 5 seconds",
+    "progress": "Completed / target",
+    "shiftTimer": "Shift",
+    "machine": "Machine",
+    "line": "Line",
+    "operator": "Operator",
+    "workOrder": "Work order",
+    "queuedBanner": "{count} events waiting to sync",
+    "install": "Install app",
+    "confirmIssue": "Confirm report"
+  }
+}
