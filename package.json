@@ -2,17 +2,23 @@
   "name": "sew-ops",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev -w @sew-ops/web",
     "build": "npm run build -w @sew-ops/shared && npm run build -w @sew-ops/web",
     "lint": "npm run lint -w @sew-ops/web",
     "typecheck": "npm run typecheck -w @sew-ops/web",
-    "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\"",
+    "dev:api": "npm run dev -w @sew-ops/api"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
     "turbo": "^2.3.3"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
