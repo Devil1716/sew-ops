@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { useState, type ReactNode } from "react";
 import { RealtimeProvider } from "@/lib/realtime/provider";
 import { ThemeRoot } from "@/components/theme";
+import { AuthLostListener } from "@/components/auth-lost-listener";
 
 export function Providers({
   children,
@@ -26,6 +27,7 @@ export function Providers({
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
       <ThemeRoot defaultTheme={defaultTheme}>
         <QueryClientProvider client={client}>
+          <AuthLostListener />
           <RealtimeProvider>{children}</RealtimeProvider>
         </QueryClientProvider>
       </ThemeRoot>

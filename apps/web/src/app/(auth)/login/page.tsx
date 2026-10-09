@@ -1,20 +1,38 @@
 "use client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginRequestSchema, type LoginRequest } from "@sew-ops/shared";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { api, ApiError } from "@/lib/api/client";
+import { SESSION_KEY, safeNext, type SessionUser } from "@/lib/auth/session";
 
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
+  const qc = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
   const form = useForm<LoginRequest>({ resolver: zodResolver(loginRequestSchema) });
 
-  const onSubmit = form.handleSubmit(async () => {
-    // UI stub: real auth is backend-driven; cookie sets role for middleware.
-    document.cookie = `sew_ops_role=manager; path=/; max-age=86400`;
-    router.push("/manager/dashboard");
+  const onSubmit = form.handleSubmit(async (values) => {
+    setError(null);
+    try {
+      const { user } = await api.post<{ user: SessionUser }>("/auth/login", values);
+      qc.setQueryData(SESSION_KEY, user);
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(safeNext(next, user.role));
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 429) {
+        setError("Too many attempts. Wait a minute and try again.");
+      } else if (e instanceof ApiError && e.status === 401) {
+        setError("Wrong email or password, or the account is temporarily locked.");
+      } else {
+        setError("Cannot reach the server. Check your connection and try again.");
+      }
+    }
   });
 
   return (
@@ -24,48 +42,34 @@ export default function LoginPage() {
         <span className="text-xs text-[var(--muted)]">{t("auth.email")}</span>
         <input
           type="email"
-          defaultValue="manager@sewops.internal"
+          autoComplete="username"
           {...form.register("email")}
-          placeholder="manager@sewops.internal"
           className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:border-[var(--accent)]"
         />
+        {form.formState.errors.email && (
+          <span className="text-xs text-red-500">Enter a valid email address.</span>
+        )}
       </label>
       <label className="block space-y-1">
         <span className="text-xs text-[var(--muted)]">{t("auth.password")}</span>
         <input
           type="password"
-          defaultValue="password123"
+          autoComplete="current-password"
           {...form.register("password")}
-          placeholder="••••••••"
           className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:border-[var(--accent)]"
         />
+        {form.formState.errors.password && (
+          <span className="text-xs text-red-500">Enter your password.</span>
+        )}
       </label>
-      <Button type="submit" variant="primary" size="lg" className="w-full">
-        {t("auth.submit")}
+      {error && (
+        <p role="alert" className="text-sm text-red-500">
+          {error}
+        </p>
+      )}
+      <Button type="submit" variant="primary" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
+        {form.formState.isSubmitting ? "Signing in…" : t("auth.submit")}
       </Button>
-
-      <div className="flex items-center gap-2 pt-2">
-        <button
-          type="button"
-          onClick={() => {
-            document.cookie = `sew_ops_role=manager; path=/; max-age=86400`;
-            router.push("/manager/dashboard");
-          }}
-          className="flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] py-1.5 text-xs text-[var(--muted)] transition hover:text-[var(--text)]"
-        >
-          Demo Manager
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            document.cookie = `sew_ops_role=admin; path=/; max-age=86400`;
-            router.push("/admin/factories");
-          }}
-          className="flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] py-1.5 text-xs text-[var(--muted)] transition hover:text-[var(--text)]"
-        >
-          Demo Admin
-        </button>
-      </div>
     </form>
   );
 }

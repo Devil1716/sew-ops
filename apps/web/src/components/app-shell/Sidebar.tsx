@@ -21,6 +21,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useUiStore } from "@/stores/ui";
 import { cn } from "@/lib/utils";
+import { performLogout } from "@/lib/auth/session";
 
 interface NavItem {
   href: string;
@@ -97,13 +98,7 @@ export function Sidebar() {
       <div className="border-t border-[var(--border)] p-2">
         <button
           type="button"
-          onClick={() => {
-            document.cookie = "sew_ops_role=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-            if (typeof window !== "undefined") {
-              window.localStorage.removeItem("sew_ops_token");
-            }
-            window.location.href = "/login";
-          }}
+          onClick={() => void performLogout()}
           title={collapsed ? "Log out" : undefined}
           className={cn(
             "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-red-500/10 hover:text-red-500",

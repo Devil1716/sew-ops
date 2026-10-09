@@ -4,9 +4,10 @@ import { newIdempotencyKey } from "@/lib/utils";
 
 /**
  * THE one fetch wrapper. Every API call in the app goes through here:
- * base URL from env, auth header, error normalization, retry with backoff.
- * When NEXT_PUBLIC_USE_FIXTURES=true (dev only) paths with a registered
- * fixture resolve locally instead of hitting the network.
+ * base URL from env, httpOnly-cookie auth (no tokens in JavaScript), silent
+ * session refresh on 401, error normalization, retry with backoff.
+ * When NEXT_PUBLIC_USE_FIXTURES=true (dev only), non-auth paths with a
+ * registered fixture resolve locally instead of hitting the network.
  */
 
 export class ApiError extends Error {
@@ -29,35 +30,56 @@ export interface ApiFetchOptions {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const isAuthPath = (path: string) => path.startsWith("/auth/");
 
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("sew_ops_token");
+export const AUTH_LOST_EVENT = "sewops:auth-lost";
+
+let refreshing: Promise<boolean> | null = null;
+
+/** One refresh at a time, shared by every caller in this tab. */
+export function refreshSession(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null;
+      });
+  }
+  return refreshing;
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { method = "GET", body, signal, retries = 2, headers = {} } = options;
 
-  if (USE_FIXTURES) {
+  if (USE_FIXTURES && !isAuthPath(path)) {
     const fixture = resolveFixture<T>(path);
     if (fixture !== undefined) return fixture;
   }
 
-  const token = getAccessToken();
   let attempt = 0;
+  let refreshed = false;
 
   for (;;) {
     try {
       const res = await fetch(`${API_BASE_URL}${path}`, {
         method,
         signal,
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...headers,
-        },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...headers },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
+
+      if (res.status === 401 && !isAuthPath(path)) {
+        if (!refreshed) {
+          // Retry once after a refresh attempt, even if it failed: another tab
+          // may already have refreshed the shared cookie.
+          refreshed = true;
+          await refreshSession();
+          continue;
+        }
+        if (typeof window !== "undefined") window.dispatchEvent(new Event(AUTH_LOST_EVENT));
+      }
 
       if (!res.ok) {
         const payload: unknown = await res.json().catch(() => undefined);
@@ -73,9 +95,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
         throw new ApiError(res.status, message, payload);
       }
 
+      if (res.status === 204) return undefined as T;
       return (await res.json()) as T;
     } catch (err) {
       if (err instanceof ApiError) throw err;
+      if (signal?.aborted) throw err;
       if (attempt < retries) {
         attempt += 1;
         await sleep(300 * 2 ** attempt);
@@ -99,7 +123,7 @@ export const api = {
     apiFetch<T>(path, { ...opts, method: "DELETE" }),
 };
 
-/** POST with an Idempotency-Key header (operator events). */
+/** POST with an Idempotency-Key header (operator events). Reworked when the operator terminal is connected. */
 export function apiPostIdempotent<T>(path: string, body: unknown, idempotencyKey?: string) {
   return apiFetch<T>(path, {
     method: "POST",

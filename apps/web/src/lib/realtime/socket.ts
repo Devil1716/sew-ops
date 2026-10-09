@@ -1,7 +1,6 @@
 "use client";
 import { io, Socket } from "socket.io-client";
 import { REALTIME_URL } from "@/lib/constants";
-import { getAccessToken } from "@/lib/api/client";
 
 let socket: Socket | null = null;
 
@@ -10,7 +9,7 @@ export function getSocket(): Socket {
   socket = io(REALTIME_URL || "/", {
     autoConnect: true,
     transports: ["websocket"],
-    auth: () => ({ token: getAccessToken() }),
+    withCredentials: true, // the httpOnly login cookie authenticates the socket
     reconnection: true,
     reconnectionDelay: 500,
     reconnectionDelayMax: 5_000,
