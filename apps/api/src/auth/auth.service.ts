@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { hash, verify } from '@node-rs/argon2';
 import type { Prisma, Role } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
-import { findCurrentShift, localClock } from '../common/shift-time';
+import { findCurrentShifts, localClock } from '../common/shift-time';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ACCESS_TTL_SECONDS,
@@ -114,21 +114,28 @@ export class AuthService {
       const shifts = await this.prisma.shift.findMany({
         where: { factoryId: machine.factoryId, isActive: true },
       });
-      const current = findCurrentShift(shifts, localClock(machine.factory.timezone));
-      if (current) {
-        const businessDate = new Date(`${current.businessDate}T00:00:00.000Z`);
+      const live = findCurrentShifts(shifts, localClock(machine.factory.timezone));
+      if (live.length > 0) {
         const assignment = await this.prisma.operatorAssignment.findFirst({
           where: {
             machineId: machine.id,
-            shiftId: current.shift.id,
-            startDate: { lte: businessDate },
-            OR: [{ endDate: null }, { endDate: { gte: businessDate } }],
+            OR: live.map((c) => {
+              const businessDate = new Date(`${c.businessDate}T00:00:00.000Z`);
+              return {
+                shiftId: c.shift.id,
+                startDate: { lte: businessDate },
+                AND: [{ OR: [{ endDate: null }, { endDate: { gte: businessDate } }] }],
+              };
+            }),
           },
-          include: { user: { include: { factories: { select: { factoryId: true } } } } },
+          include: {
+            user: { include: { factories: { select: { factoryId: true } } } },
+            shift: true,
+          },
         });
         if (assignment) {
           user = assignment.user;
-          shiftInfo = { id: current.shift.id, name: current.shift.name };
+          shiftInfo = { id: assignment.shift.id, name: assignment.shift.name };
         }
       }
     }

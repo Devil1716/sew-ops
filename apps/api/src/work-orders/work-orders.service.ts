@@ -24,7 +24,7 @@ const isoDate = z
   .string()
   .datetime({ offset: true })
   .transform((s) => new Date(s));
-const codeText = z.string().trim().toUpperCase().min(1).max(40);
+const codeText = z.string().trim().toUpperCase().min(1).max(40).regex(/^[A-Z0-9][A-Z0-9 _./-]*$/, 'Start with a letter or number; use letters, numbers, spaces and - _ . /');
 const quantitySchema = z.number().int().min(1).max(1_000_000);
 
 const createSchema = z

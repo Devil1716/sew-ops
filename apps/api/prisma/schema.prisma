@@ -380,6 +380,8 @@ model QualityCheck {
   inspectedQty Int     @map("inspected_qty")
   rejectedQty Int      @map("rejected_qty")
   defectType  String?  @map("defect_type")
+  idempotencyKey String   @map("idempotency_key")
+  voidedAt       DateTime? @map("voided_at") @db.Timestamptz(6)
   note        String?
   checkedAt   DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -391,6 +393,7 @@ model QualityCheck {
 
   @@index([factoryId, checkedAt])
   @@index([workOrderId])
+  @@unique([factoryId, idempotencyKey])
   @@map("quality_checks")
 }
 

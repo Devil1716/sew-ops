@@ -25,24 +25,32 @@ export function addDays(date: string, delta: number) {
 }
 
 /**
- * Finds the shift running right now. For overnight shifts (e.g. 22:00-06:00) the
- * "business date" after midnight is the previous calendar day (the day the shift started).
+ * Every shift running right now (shifts may overlap). For overnight shifts (e.g. 22:00-06:00)
+ * the "business date" after midnight is the previous calendar day (the day the shift started).
  */
-export function findCurrentShift<T extends { startsAt: string; endsAt: string }>(
+export function findCurrentShifts<T extends { startsAt: string; endsAt: string }>(
   shifts: T[],
   clock: { date: string; minutes: number },
-): { shift: T; businessDate: string } | null {
+): { shift: T; businessDate: string }[] {
+  const live: { shift: T; businessDate: string }[] = [];
   for (const shift of shifts) {
     const start = toMinutes(shift.startsAt);
     const end = toMinutes(shift.endsAt);
     if (start < end) {
       if (clock.minutes >= start && clock.minutes < end) {
-        return { shift, businessDate: clock.date };
+        live.push({ shift, businessDate: clock.date });
       }
     } else {
-      if (clock.minutes >= start) return { shift, businessDate: clock.date };
-      if (clock.minutes < end) return { shift, businessDate: addDays(clock.date, -1) };
+      if (clock.minutes >= start) live.push({ shift, businessDate: clock.date });
+      else if (clock.minutes < end) live.push({ shift, businessDate: addDays(clock.date, -1) });
     }
   }
-  return null;
+  return live;
+}
+
+export function findCurrentShift<T extends { startsAt: string; endsAt: string }>(
+  shifts: T[],
+  clock: { date: string; minutes: number },
+): { shift: T; businessDate: string } | null {
+  return findCurrentShifts(shifts, clock)[0] ?? null;
 }

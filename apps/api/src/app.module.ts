@@ -13,7 +13,9 @@ import { LinesModule } from './lines/lines.module';
 import { MachinesModule } from './machines/machines.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductionModule } from './production/production.module';
+import { QualityModule } from './quality/quality.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { ReportsModule } from './reports/reports.module';
 import { ShiftsModule } from './shifts/shifts.module';
 import { UsersModule } from './users/users.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
@@ -35,6 +37,8 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
     WorkOrdersModule,
     ProductionModule,
     IssuesModule,
+    QualityModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [
