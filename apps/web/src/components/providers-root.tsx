@@ -1,6 +1,6 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NextIntlClientProvider } from "next-intl";
+import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import { useState, type ReactNode } from "react";
 import { RealtimeProvider } from "@/lib/realtime/provider";
 import { ThemeRoot } from "@/components/theme";
@@ -12,7 +12,7 @@ export function Providers({
   defaultTheme = "light",
 }: {
   children: ReactNode;
-  messages: Record<string, unknown>;
+  messages: AbstractIntlMessages;
   defaultTheme?: "light" | "dark";
 }) {
   const [client] = useState(

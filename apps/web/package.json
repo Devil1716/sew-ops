@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -18,8 +18,8 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "@react-three/drei": "^9.120.4",
     "@react-three/fiber": "^8.17.10",
-    "@sew-ops/shared": "*",
     "@serwist/next": "^9.0.11",
+    "@sew-ops/shared": "*",
     "@tanstack/react-query": "^5.62.8",
     "@tanstack/react-table": "^8.20.6",
     "class-variance-authority": "^0.7.1",

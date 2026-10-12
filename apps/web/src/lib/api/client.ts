@@ -52,7 +52,7 @@ export function refreshSession(): Promise<boolean> {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { method = "GET", body, signal, retries = 2, headers = {} } = options;
 
-  if (USE_FIXTURES && !isAuthPath(path)) {
+  if (USE_FIXTURES && method === "GET" && !isAuthPath(path)) {
     const fixture = resolveFixture<T>(path);
     if (fixture !== undefined) return fixture;
   }
