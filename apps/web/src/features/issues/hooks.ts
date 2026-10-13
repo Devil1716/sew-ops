@@ -4,10 +4,20 @@ import type { Issue, OpenIssueRequest } from "@sew-ops/shared";
 import { api, apiPostIdempotent } from "@/lib/api/client";
 import { qk } from "@/lib/api/query-keys";
 
+export type LiveIssue = Issue & {
+  machineName: string;
+  machineCode: string;
+  lineName: string;
+  durationMinutes: number;
+  acknowledgedAt: string | null;
+};
+
+/** Everything not yet resolved (open and acknowledged). */
 export function useOpenIssues() {
   return useQuery({
-    queryKey: qk.issues({ /* status filter is server-side */ }),
-    queryFn: () => api.get<Issue[]>("/issues?status=open"),
+    queryKey: qk.issues({}),
+    queryFn: () => api.get<LiveIssue[]>("/issues"),
+    refetchInterval: 60_000,
   });
 }
 

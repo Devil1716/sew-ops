@@ -32,6 +32,11 @@ export interface ApiFetchOptions {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isAuthPath = (path: string) => path.startsWith("/auth/");
 
+/** Endpoints already wired to the real backend: never answered by dev fixtures. */
+const LIVE_PREFIXES = ["/auth", "/operator", "/production", "/dashboard", "/machines", "/issues"];
+const isLivePath = (path: string) =>
+  LIVE_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`) || path.startsWith(`${p}?`));
+
 export const AUTH_LOST_EVENT = "sewops:auth-lost";
 
 let refreshing: Promise<boolean> | null = null;
@@ -52,7 +57,7 @@ export function refreshSession(): Promise<boolean> {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { method = "GET", body, signal, retries = 2, headers = {} } = options;
 
-  if (USE_FIXTURES && method === "GET" && !isAuthPath(path)) {
+  if (USE_FIXTURES && method === "GET" && !isLivePath(path)) {
     const fixture = resolveFixture<T>(path);
     if (fixture !== undefined) return fixture;
   }

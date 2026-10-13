@@ -16,11 +16,12 @@ export interface SessionUser {
 export const SESSION_KEY = ["session"] as const;
 
 /** Who is logged in. Source of truth is the server (/auth/me), never a cookie we wrote. */
-export function useSession() {
+export function useSession(enabled = true) {
   return useQuery({
     queryKey: SESSION_KEY,
     queryFn: async () => (await api.get<{ user: SessionUser }>("/auth/me")).user,
     retry: false,
+    enabled,
     staleTime: 5 * 60_000,
   });
 }

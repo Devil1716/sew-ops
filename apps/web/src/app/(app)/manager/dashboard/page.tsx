@@ -159,8 +159,15 @@ export default function DashboardPage() {
             <ul className="divide-y divide-[var(--border)]">
               {issues.data.slice(0, 8).map((i) => (
                 <li key={i.id} className="row-flash flex items-center justify-between py-2 text-sm">
-                  <span>{t(`issue.${camelize(i.type)}`)}</span>
-                  <span className="font-data text-xs text-[var(--muted)]">{i.severity}</span>
+                  <span className="flex flex-col">
+                    <span>{t(`issue.${camelize(i.type)}`)}</span>
+                    <span className="font-data text-xs text-[var(--muted)]">
+                      {i.machineCode} · {i.lineName}
+                    </span>
+                  </span>
+                  <span className="font-data text-xs text-[var(--muted)]">
+                    {i.status} · {Math.round(i.durationMinutes)} min
+                  </span>
                 </li>
               ))}
             </ul>
