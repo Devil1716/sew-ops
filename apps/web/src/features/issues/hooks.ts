@@ -10,14 +10,61 @@ export type LiveIssue = Issue & {
   lineName: string;
   durationMinutes: number;
   acknowledgedAt: string | null;
+  note: string | null;
+  resolutionNote: string | null;
+  resolvedAt: string | null;
 };
 
-/** Everything not yet resolved (open and acknowledged). */
+export type IssueView = "unresolved" | "resolved";
+
+/** Everything not yet resolved (open and acknowledged). Used by the dashboard. */
 export function useOpenIssues() {
   return useQuery({
     queryKey: qk.issues({}),
     queryFn: () => api.get<LiveIssue[]>("/issues"),
     refetchInterval: 60_000,
+  });
+}
+
+/** The Issues screen: unresolved, or resolved in the last 7 days. */
+export function useIssueList(view: IssueView) {
+  return useQuery({
+    queryKey: ["issues", "list", view],
+    queryFn: () => {
+      if (view === "unresolved") return api.get<LiveIssue[]>("/issues?limit=200");
+      const since = encodeURIComponent(new Date(Date.now() - 7 * 86_400_000).toISOString());
+      return api.get<LiveIssue[]>(`/issues?status=resolved&since=${since}&limit=200`);
+    },
+    refetchInterval: 60_000,
+  });
+}
+
+function useRefreshAfterIssueChange() {
+  const qc = useQueryClient();
+  return () => {
+    void qc.invalidateQueries({ queryKey: ["issues"] });
+    void qc.invalidateQueries({ queryKey: ["machines"] });
+    void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    void qc.invalidateQueries({ queryKey: ["downtime"] });
+  };
+}
+
+export function useAcknowledgeIssue() {
+  const refresh = useRefreshAfterIssueChange();
+  return useMutation({
+    mutationFn: (id: string) => api.patch<unknown>(`/issues/${id}/acknowledge`),
+    onSuccess: refresh,
+  });
+}
+
+export function useResolveIssue() {
+  const refresh = useRefreshAfterIssueChange();
+  return useMutation({
+    mutationFn: (input: { id: string; resolutionNote: string }) =>
+      api.post<unknown>(`/issues/${input.id}/resolve`, {
+        resolutionNote: input.resolutionNote || undefined,
+      }),
+    onSuccess: refresh,
   });
 }
 

@@ -71,7 +71,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
     const onMachine = () => schedule("machines", "dashboard");
     const onPiece = () => schedule("dashboard", "work-orders");
-    const onIssue = () => schedule("issues", "dashboard", "machines");
+    const onIssue = () => schedule("issues", "dashboard", "machines", "downtime");
     const onWorkOrder = () => schedule("work-orders", "dashboard");
 
     socket.on(EV.ready, onReady);
