@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Line } from '@prisma/client';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
@@ -91,6 +91,12 @@ export class LinesService {
     const before = await this.prisma.line.findUnique({ where: { id } });
     if (!before) throw new NotFoundException();
     assertFactoryAccess(user, before.factoryId);
+    if (dto.isActive === false && before.isActive) {
+      const activeMachines = await this.prisma.machine.count({ where: { lineId: id, isActive: true } });
+      if (activeMachines > 0) {
+        throw new BadRequestException('Deactivate or move this line machines first.');
+      }
+    }
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const line = await tx.line.update({ where: { id }, data: dto });

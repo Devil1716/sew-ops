@@ -42,6 +42,7 @@ const managerNav: NavItem[] = [
 
 const adminNav: NavItem[] = [
   { href: "/admin/factories", labelKey: "app.factories", icon: <Building2 className="h-4 w-4" /> },
+  { href: "/admin/floor", labelKey: "app.floor", icon: <Cpu className="h-4 w-4" /> },
   { href: "/admin/users", labelKey: "app.users", icon: <Users className="h-4 w-4" /> },
   { href: "/admin/shifts", labelKey: "app.shifts", icon: <Clock className="h-4 w-4" /> },
   { href: "/admin/assignments", labelKey: "app.assignments", icon: <Boxes className="h-4 w-4" /> },

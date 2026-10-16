@@ -86,6 +86,7 @@
     "lines": "Lines",
     "machines": "Machines",
     "workOrders": "Work Orders",
+    "floor": "Floor setup",
     "issues": "Issues",
     "downtime": "Downtime",
     "quality": "Quality",
