@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, Shield, ChevronDown } from "lucide-react";
+import { KeyRound, LogOut, Settings, Shield, ChevronDown } from "lucide-react";
 import { performLogout, useSession } from "@/lib/auth/session";
+import { ChangePasswordModal } from "@/components/app-shell/ChangePasswordModal";
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { data: user } = useSession();
@@ -29,6 +31,9 @@ export function AccountMenu() {
         .map((p) => p.charAt(0).toUpperCase())
         .join("")
     : "··";
+
+  const itemClass =
+    "flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-xs text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]";
 
   return (
     <div className="relative" ref={menuRef}>
@@ -59,21 +64,34 @@ export function AccountMenu() {
             )}
           </div>
 
-          {user?.role === "admin" && (
-            <div className="py-1">
+          <div className="space-y-0.5 py-1">
+            {user?.role === "admin" && (
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
                   router.push("/admin/settings");
                 }}
-                className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-xs text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
+                className={itemClass}
               >
                 <Settings className="h-3.5 w-3.5 text-[var(--muted)]" />
                 Settings
               </button>
-            </div>
-          )}
+            )}
+            {user && user.role !== "operator" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setPasswordOpen(true);
+                }}
+                className={itemClass}
+              >
+                <KeyRound className="h-3.5 w-3.5 text-[var(--muted)]" />
+                Change password
+              </button>
+            )}
+          </div>
 
           <div className="border-t border-[var(--border)] pt-1">
             <button
@@ -87,6 +105,8 @@ export function AccountMenu() {
           </div>
         </div>
       )}
+
+      {passwordOpen && <ChangePasswordModal onClose={() => setPasswordOpen(false)} />}
     </div>
   );
 }

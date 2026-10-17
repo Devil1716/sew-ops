@@ -33,7 +33,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isAuthPath = (path: string) => path.startsWith("/auth/");
 
 /** Endpoints already wired to the real backend: never answered by dev fixtures. */
-const LIVE_PREFIXES = ["/auth", "/operator", "/production", "/dashboard", "/machines", "/issues", "/downtime", "/work-orders", "/lines", "/shifts", "/factories"];
+const LIVE_PREFIXES = ["/auth", "/operator", "/production", "/dashboard", "/machines", "/issues", "/downtime", "/work-orders", "/lines", "/shifts", "/factories", "/users", "/operator-assignments", "/account"];
 const isLivePath = (path: string) =>
   LIVE_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`) || path.startsWith(`${p}?`));
 
