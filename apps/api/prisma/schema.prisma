@@ -30,6 +30,7 @@ enum IssueType {
   quality_issue
   break_pause
   other
+  maintenance
 }
 
 enum IssueSeverity {

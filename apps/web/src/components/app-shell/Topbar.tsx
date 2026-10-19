@@ -1,10 +1,11 @@
 "use client";
-import { Bell, Command, HelpCircle, Search } from "lucide-react";
+import { Command, HelpCircle, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useUiStore } from "@/stores/ui";
 import { ThemeToggle } from "@/components/theme";
 import { ConnectionBadge } from "@/components/data/ConnectionBadge";
 import { AccountMenu } from "@/components/app-shell/AccountMenu";
+import { NotificationBell } from "@/components/app-shell/NotificationBell";
 
 export function Topbar() {
   const openPalette = useUiStore((s) => s.setCommandOpen);
@@ -25,13 +26,7 @@ export function Topbar() {
 
       <div className="ml-auto flex items-center gap-2">
         <ConnectionBadge />
-        <button
-          type="button"
-          aria-label={t("app.notifications")}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_6%,var(--surface))]"
-        >
-          <Bell className="h-4 w-4" />
-        </button>
+        <NotificationBell />
         <button
           type="button"
           aria-label={t("app.help")}

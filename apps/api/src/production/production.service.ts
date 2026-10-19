@@ -85,6 +85,9 @@ export class ProductionService {
     const existing = await this.findByKey(ctx.factoryId, dto.idempotencyKey);
     if (existing) return this.replay(existing, user);
 
+    if (ctx.machine.status === 'maintenance') {
+      throw new ConflictException('This machine is under maintenance. Ask a manager to end it before recording pieces.');
+    }
     if (!ctx.workOrder) {
       throw new ConflictException('No active work order is assigned to this station.');
     }

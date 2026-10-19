@@ -8,18 +8,52 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { ErrorState } from "@/components/data/ErrorState";
 import { RowSkeleton } from "@/components/data/Skeletons";
 import { StatusDot } from "@/components/data/StatusDot";
+import { Field, FormError, Modal, ModalActions, describeError, inputClass } from "@/components/admin/kit";
 import { useLineProgress } from "@/features/kpis/hooks";
 import { useMachineBoard, type LiveMachine } from "@/features/machines/live";
+import { useSetMaintenance } from "@/features/machines/maintenance";
 import { timeAgo } from "@/lib/time";
 
 const STATUSES: MachineStatus[] = ["running", "idle", "breakdown", "maintenance", "offline"];
+
+function StartMaintenanceModal({ machine, onClose }: { machine: LiveMachine; onClose: () => void }) {
+  const set = useSetMaintenance();
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Modal
+      title={`Maintenance on ${machine.code}`}
+      description="The machine is marked as in maintenance until you end it. The time is recorded as planned downtime, and operators cannot record pieces on it meanwhile (they can still report issues)."
+      onClose={onClose}
+    >
+      <Field label="What is being done? (optional, kept in the audit log)">
+        <input className={inputClass} value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
+      </Field>
+      <FormError message={error} />
+      <ModalActions
+        onCancel={onClose}
+        onSubmit={() =>
+          set.mutate(
+            { id: machine.id, on: true, note: note.trim() },
+            { onSuccess: onClose, onError: (e) => setError(describeError(e)) },
+          )
+        }
+        busy={set.isPending}
+        submitLabel="Start maintenance"
+      />
+    </Modal>
+  );
+}
 
 export default function MachinesPage() {
   const t = useTranslations();
   const machines = useMachineBoard();
   const lines = useLineProgress();
+  const set = useSetMaintenance();
   const [filter, setFilter] = useState<MachineStatus | "all">("all");
   const [now, setNow] = useState(() => Date.now());
+  const [startFor, setStartFor] = useState<LiveMachine | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -35,6 +69,7 @@ export default function MachinesPage() {
 
   const lineNames = new Map((lines.data ?? []).map((l) => [l.lineId, l.lineName]));
   const visible = filter === "all" ? all : all.filter((m) => m.status === filter);
+  const busyId = set.isPending ? set.variables?.id : undefined;
 
   const groups = new Map<string, LiveMachine[]>();
   for (const m of visible) {
@@ -45,6 +80,11 @@ export default function MachinesPage() {
   const ordered = [...groups.entries()].sort((a, b) =>
     (lineNames.get(a[0]) ?? "").localeCompare(lineNames.get(b[0]) ?? ""),
   );
+
+  const endMaintenance = (m: LiveMachine) => {
+    setError(null);
+    set.mutate({ id: m.id, on: false }, { onError: (e) => setError(describeError(e)) });
+  };
 
   return (
     <div className="space-y-6 py-4">
@@ -65,6 +105,8 @@ export default function MachinesPage() {
         </div>
       </header>
 
+      {error && <ErrorState message={error} />}
+
       {machines.isLoading ? (
         <Card>
           <RowSkeleton />
@@ -72,10 +114,7 @@ export default function MachinesPage() {
       ) : machines.isError ? (
         <ErrorState message="Could not load machines." onRetry={() => machines.refetch()} />
       ) : all.length === 0 ? (
-        <EmptyState
-          title="No machines yet"
-          body="An admin adds lines and machines. They appear here as soon as they exist."
-        />
+        <EmptyState title="No machines yet" body="An admin adds lines and machines. They appear here as soon as they exist." />
       ) : visible.length === 0 ? (
         <EmptyState title="No machines with that status" />
       ) : (
@@ -100,12 +139,25 @@ export default function MachinesPage() {
                     </div>
                     <div className="text-sm">{m.name}</div>
                     <div className="font-data text-xs text-[var(--muted)]">{timeAgo(m.lastEventAt, now)}</div>
+                    <div className="pt-1">
+                      {m.status === "maintenance" ? (
+                        <Button size="sm" variant="secondary" disabled={busyId === m.id} onClick={() => endMaintenance(m)}>
+                          {busyId === m.id ? "Ending…" : "End maintenance"}
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setStartFor(m)}>
+                          Maintenance
+                        </Button>
+                      )}
+                    </div>
                   </Card>
                 ))}
             </div>
           </section>
         ))
       )}
+
+      {startFor && <StartMaintenanceModal machine={startFor} onClose={() => setStartFor(null)} />}
     </div>
   );
 }

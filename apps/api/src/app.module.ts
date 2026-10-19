@@ -12,6 +12,8 @@ import { FactoriesModule } from './factories/factories.module';
 import { HealthController } from './health/health.controller';
 import { IssuesModule } from './issues/issues.module';
 import { LinesModule } from './lines/lines.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { MachinesModule } from './machines/machines.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductionModule } from './production/production.module';
@@ -43,6 +45,8 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
     ReportsModule,
     DashboardModule,
     AccountModule,
+    NotificationsModule,
+    MaintenanceModule,
   ],
   controllers: [HealthController],
   providers: [

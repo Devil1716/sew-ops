@@ -21,6 +21,7 @@ const SEVERITY: Record<IssueType, IssueSeverity> = {
   quality_issue: 'medium',
   break_pause: 'low',
   other: 'medium',
+  maintenance: 'low',
 };
 
 /** Operators can end their own self-fixable issues; everything else needs a manager. */
@@ -34,7 +35,7 @@ const keySchema = z
 
 const openSchema = z
   .object({
-    type: z.nativeEnum(IssueType),
+    type: z.nativeEnum(IssueType).refine((t) => t !== 'maintenance', 'Maintenance is started by a manager from the Machines screen.'),
     note: z.string().trim().max(500).optional(),
     idempotencyKey: keySchema,
   })
@@ -166,6 +167,35 @@ export class IssuesService {
           });
         }
 
+        if (dto.type !== 'break_pause') {
+          const labels: Record<string, string> = {
+            machine_issue: 'Machine issue',
+            thread_empty: 'Thread empty',
+            material_missing: 'Material missing',
+            quality_issue: 'Quality issue',
+            other: 'Issue reported',
+          };
+          const recipients = await tx.user.findMany({
+            where: {
+              isActive: true,
+              role: { in: ['admin', 'manager'] },
+              factories: { some: { factoryId: ctx.factoryId } },
+            },
+            select: { id: true },
+          });
+          if (recipients.length > 0) {
+            await tx.notification.createMany({
+              data: recipients.map((r) => ({
+                factoryId: ctx.factoryId,
+                userId: r.id,
+                title: `${labels[dto.type] ?? 'Issue reported'} at ${ctx.machine.code}`,
+                body: dto.note || `Reported by ${user.name}`,
+                entityType: 'issue',
+                entityId: created.id,
+              })),
+            });
+          }
+        }
         const full = await tx.issue.findUniqueOrThrow({ where: { id: created.id }, include });
         await this.audit.log(
           {
