@@ -20,6 +20,7 @@ import { ProductionModule } from './production/production.module';
 import { QualityModule } from './quality/quality.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { ReportsModule } from './reports/reports.module';
+import { SettingsModule } from './settings/settings.module';
 import { ShiftsModule } from './shifts/shifts.module';
 import { UsersModule } from './users/users.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
@@ -47,6 +48,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
     AccountModule,
     NotificationsModule,
     MaintenanceModule,
+    SettingsModule,
   ],
   controllers: [HealthController],
   providers: [

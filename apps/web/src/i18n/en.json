@@ -140,6 +140,7 @@
     "materialMissing": "Material missing",
     "qualityIssue": "Quality issue",
     "breakPause": "Break / Pause",
+    "maintenance": "Maintenance",
     "other": "Other"
   },
   "operator": {

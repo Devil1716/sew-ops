@@ -12,6 +12,7 @@ import type { AuthUser } from '../auth/auth.types';
 import { assertFactoryAccess } from '../common/access';
 import { parseBody, parseUuid } from '../common/validation';
 import { PrismaService } from '../prisma/prisma.service';
+import { isAlertEnabled } from '../settings/alert-rules';
 import { StationService } from '../production/station.service';
 
 const SEVERITY: Record<IssueType, IssueSeverity> = {
@@ -167,7 +168,7 @@ export class IssuesService {
           });
         }
 
-        if (dto.type !== 'break_pause') {
+        if (dto.type !== 'break_pause' && (await isAlertEnabled(tx, ctx.factoryId, dto.type))) {
           const labels: Record<string, string> = {
             machine_issue: 'Machine issue',
             thread_empty: 'Thread empty',
