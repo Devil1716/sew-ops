@@ -9,3 +9,7 @@ dist/
 public/sw.js
 public/swe-worker-*.js
 .DS_Store
+
+# database backups (contain real data)
+backups/
+*.dump
