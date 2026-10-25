@@ -324,7 +324,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+main().then(() => process.exit(process.exitCode ?? 0)).catch((e) => {
   console.error('\nSCRIPT ERROR:', e.message);
   process.exit(1);
 });
