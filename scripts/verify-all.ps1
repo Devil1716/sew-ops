@@ -12,6 +12,8 @@ $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
 $env:ADMIN_EMAIL = "dhanushrpoojari0@gmail.com"
 $env:ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
 
+function Clean-TestData { powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "scripts/cleanup-test-data.ps1") | Out-Null }
+Clean-TestData   # start from a clean slate
 $rows = @()
 function Show-Row($r) {
   $mark = if ($r.Ok) { "[PASS]" } else { "[FAIL]" }
@@ -52,6 +54,7 @@ try {
     $r = [pscustomobject]@{ Name = $f.Name; Ok = $good; Detail = ("{0} checks" -f $pass); Secs = (Seconds $t) }
     $rows += $r; Show-Row $r
     if (-not $good) { ($out -split "`n" | Where-Object { $_ -match '^(FAIL|SCRIPT ERROR)' } | Select-Object -First 8) -join "`n" | Write-Host -ForegroundColor Red }
+    Clean-TestData   # every suite gets a clean factory
   }
 }
 finally {

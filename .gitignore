@@ -13,3 +13,7 @@ public/swe-worker-*.js
 # database backups (contain real data)
 backups/
 *.dump
+
+# generated service worker (rebuilt on every website build)
+apps/web/public/sw.js
+apps/web/public/sw.js.map
