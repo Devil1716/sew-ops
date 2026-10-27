@@ -21,7 +21,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useUiStore } from "@/stores/ui";
 import { cn } from "@/lib/utils";
-import { performLogout } from "@/lib/auth/session";
+import { performLogout, useSession } from "@/lib/auth/session";
 
 interface NavItem {
   href: string;
@@ -55,7 +55,8 @@ export function Sidebar() {
   const t = useTranslations();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
-  const isAdmin = path.startsWith("/admin");
+  const { data: me } = useSession();
+  const isAdmin = me?.role === "admin" || path.startsWith("/admin");
 
   return (
     <aside
@@ -66,7 +67,7 @@ export function Sidebar() {
     >
       <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-3">
         {!collapsed && (
-          <Link href="/manager/dashboard" className="flex items-center gap-2">
+          <Link href={isAdmin ? "/admin/factories" : "/manager/dashboard"} className="flex items-center gap-2">
             <ThreadMark />
             <span className="font-semibold tracking-tight">SewOps</span>
           </Link>

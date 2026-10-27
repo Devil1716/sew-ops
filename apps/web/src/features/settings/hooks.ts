@@ -50,7 +50,7 @@ export function useSystemHealth() {
   return useQuery({
     queryKey: ["system", "health"],
     queryFn: async (): Promise<SystemHealth> => {
-      const origin = new URL(API_BASE_URL).origin;
+      const origin = new URL(API_BASE_URL, window.location.origin).origin;
       const res = await fetch(`${origin}/health`, { cache: "no-store" });
       if (!res.ok) throw new Error("unhealthy");
       return (await res.json()) as SystemHealth;
