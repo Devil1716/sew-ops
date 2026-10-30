@@ -17,3 +17,6 @@ backups/
 # generated service worker (rebuilt on every website build)
 apps/web/public/sw.js
 apps/web/public/sw.js.map
+
+# deployment secrets (generated per environment)
+deploy/.env.*

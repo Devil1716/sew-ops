@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+backups
+**/*.dump
+**/.env
+**/.env.*
+**/.env.local
+deploy/.env.*
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+docs
+*.md

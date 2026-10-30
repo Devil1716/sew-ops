@@ -29,7 +29,7 @@ export function inspectEnvironment(env: NodeJS.ProcessEnv = process.env): EnvRep
     if (!cors.split(',').every((origin) => origin.trim().startsWith('https://'))) {
       productionOnly.push('CORS_ORIGIN must use https:// in production.');
     }
-    if (/localhost|127\.0\.0\.1/.test(cors)) productionOnly.push('CORS_ORIGIN still points at localhost.');
+    if (/localhost|127\.0\.0\.1/.test(cors) && env.ALLOW_LOCALHOST_ORIGIN !== 'true') productionOnly.push('CORS_ORIGIN still points at localhost.');
     if (/change|example|test|password|secret/i.test(secret)) {
       productionOnly.push('JWT_ACCESS_SECRET looks like a placeholder.');
     }

@@ -27,3 +27,15 @@ jobs:
       - name: Dependency audit (production libraries, high and above)
         run: npm audit --omit=dev --audit-level=high
         continue-on-error: true
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API image
+        run: docker build -f deploy/api.Dockerfile --target runtime -t sewops-api:ci .
+      - name: Build the migration tools image
+        run: docker build -f deploy/api.Dockerfile --target tools -t sewops-tools:ci .
+      - name: Build the website image
+        run: docker build -f deploy/web.Dockerfile -t sewops-web:ci .
