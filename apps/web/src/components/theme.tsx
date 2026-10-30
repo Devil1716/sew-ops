@@ -45,19 +45,110 @@ export function useTheme() {
   return useContext(Ctx);
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
+/**
+ * Lightweight theme toggle for the product (Topbar, manager, operator, admin).
+ * - Animates only during the 200ms transition between light and dark.
+ * - Zero ambient animation loops.
+ * - Accessible: role="switch", aria-checked, keyboard focus ring.
+ */
+export function ProductThemeToggle({ className }: { className?: string }) {
   const { theme, toggle } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <button
       type="button"
-      onClick={toggle}
+      role="switch"
+      aria-checked={isDark}
       aria-label="Toggle theme"
+      onClick={toggle}
       className={
-        "inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--text)_6%,var(--surface))] " +
+        "group relative inline-flex h-9 w-14 shrink-0 cursor-pointer items-center rounded-full border border-[var(--border)] bg-[var(--surface)] p-1 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] " +
         (className ?? "")
       }
     >
-      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      <span className="sr-only">Toggle theme</span>
+      <span
+        className={
+          "pointer-events-none flex h-7 w-7 transform items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] shadow-sm transition-transform duration-200 " +
+          (isDark ? "translate-x-5 text-amber-300" : "translate-x-0 text-amber-600")
+        }
+      >
+        {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+      </span>
     </button>
   );
 }
+
+/**
+ * Celestial Skybox Theme Switch
+ * Adapted from Uiverse.io by mamyapro123 - MIT License.
+ * Used exclusively on the marketing navbar.
+ */
+export function SkyboxThemeToggle({ className }: { className?: string }) {
+  const { theme, toggle } = useTheme();
+  const isDark = theme === "dark";
+
+  return (
+    <label
+      className={"theme-switch cursor-pointer " + (className ?? "")}
+      aria-label="Toggle theme"
+    >
+      <input
+        type="checkbox"
+        role="switch"
+        aria-checked={isDark}
+        aria-label="Toggle theme"
+        className="theme-switch__checkbox"
+        checked={isDark}
+        onChange={toggle}
+      />
+      <span className="theme-switch__container">
+        <span className="theme-switch__clouds" />
+        <span className="theme-switch__stars-cluster">
+          <span className="star" />
+          <span className="star" />
+          <span className="star" />
+          <span className="star" />
+          <span className="star" />
+        </span>
+        <span className="theme-switch__aurora" />
+        <span className="theme-switch__shooting-star" />
+        <span className="theme-switch__shooting-star-2" />
+        <span className="theme-switch__meteor" />
+        <span className="theme-switch__comets">
+          <span className="comet" />
+          <span className="comet" />
+        </span>
+        <span className="theme-switch__circle-container">
+          <span className="theme-switch__sun-moon-container">
+            <span className="theme-switch__moon">
+              <span className="theme-switch__spot" />
+              <span className="theme-switch__spot" />
+              <span className="theme-switch__spot" />
+            </span>
+          </span>
+        </span>
+      </span>
+    </label>
+  );
+}
+
+/**
+ * Main ThemeToggle component.
+ * By default renders the lightweight ProductThemeToggle for app shell.
+ * When variant="skybox", renders the celestial animated skybox for marketing.
+ */
+export function ThemeToggle({
+  className,
+  variant = "product",
+}: {
+  className?: string;
+  variant?: "product" | "skybox";
+}) {
+  if (variant === "skybox") {
+    return <SkyboxThemeToggle className={className} />;
+  }
+  return <ProductThemeToggle className={className} />;
+}
+

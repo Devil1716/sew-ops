@@ -18,6 +18,9 @@ const buttonVariants = cva(
           "bg-[var(--status-breakdown)] text-white hover:brightness-110",
         tactile:
           "tactile bg-[var(--surface)] text-[var(--text)] font-semibold tracking-tight",
+        /* Shine CTA button: adapted from Uiverse.io by satyamchaudharydev - MIT License */
+        shine:
+          "btn-shine text-[var(--accent-foreground)]",
       },
       size: {
         sm: "h-8 px-3 text-sm rounded-[var(--radius-sm)]",

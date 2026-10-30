@@ -7,7 +7,7 @@ export function Breadcrumbs() {
   const path = usePathname();
   const parts = path.split("/").filter(Boolean);
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 px-4 py-2 text-xs text-[var(--muted)]">
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1 overflow-x-auto px-4 py-2 text-xs text-[var(--muted)] whitespace-nowrap">
       {parts.map((p, i) => {
         const href = "/" + parts.slice(0, i + 1).join("/");
         const last = i === parts.length - 1;

@@ -3,10 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PinPad } from "@/components/operator/PinPad";
-import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api/client";
 import { SESSION_KEY, safeNext, type SessionUser } from "@/lib/auth/session";
+import { AlertCircle, ArrowLeft, Cpu } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // A terminal is bolted to one machine, so remember its code (not a secret).
 const MACHINE_KEY = "sewops_machine_code";
@@ -63,31 +64,78 @@ export default function OperatorLoginPage() {
   };
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="w-full max-w-[380px] space-y-7">
+      {/* Header */}
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("auth.operatorTitle")}</h1>
-        <p className="text-sm text-[var(--muted)]">Enter the machine code, then your 6-digit PIN.</p>
+        {/* Terminal icon badge */}
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-2)]">
+          <Cpu className="h-7 w-7 text-[var(--accent)]" />
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
+          {t("auth.operatorTitle")}
+        </h1>
+        <p className="text-sm text-[var(--muted)]">
+          Enter the machine code, then your 6-digit PIN.
+        </p>
       </div>
-      <label className="block space-y-1">
-        <span className="text-xs text-[var(--muted)]">{t("auth.machineCode")}</span>
+
+      {/* Machine code input */}
+      <div className="space-y-1.5">
+        <label
+          htmlFor="op-machine-code"
+          className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]"
+        >
+          {t("auth.machineCode")}
+        </label>
         <input
+          id="op-machine-code"
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           autoCapitalize="characters"
-          className="h-12 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-4 text-center text-xl font-semibold tracking-widest outline-none focus:border-[var(--accent)]"
+          spellCheck={false}
+          placeholder="e.g. M-042"
+          className={cn(
+            "h-14 w-full rounded-[var(--radius-md)] border bg-[var(--surface)] px-4 text-center",
+            "font-mono text-xl font-bold tracking-[0.25em] text-[var(--text)]",
+            "outline-none transition-colors placeholder:text-[var(--muted)]/50 placeholder:font-sans placeholder:text-sm placeholder:tracking-normal",
+            "focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]",
+            error && !code ? "border-red-500" : "border-[var(--border)]",
+          )}
         />
-      </label>
+      </div>
+
+      {/* Error */}
       {error && (
-        <p role="alert" className="text-center text-sm text-red-500">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-red-500/30 bg-red-500/8 p-3 text-xs font-medium text-red-500"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
-      <div className={busy ? "pointer-events-none opacity-60" : undefined}>
+
+      {/* PIN Pad — wrapped to dim when busy */}
+      <div
+        className={cn(
+          "transition-opacity",
+          busy ? "pointer-events-none opacity-50" : "opacity-100",
+        )}
+      >
         <PinPad key={padKey} length={6} onComplete={onPin} />
       </div>
-      <Button variant="ghost" size="sm" className="mx-auto block" onClick={() => router.back()}>
-        Cancel
-      </Button>
+
+      {/* Back link */}
+      <div className="flex justify-center pt-1">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </button>
+      </div>
     </div>
   );
 }

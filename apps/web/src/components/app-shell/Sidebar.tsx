@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import {
   Activity,
   AlertOctagon,
@@ -17,6 +18,7 @@ import {
   ShieldCheck,
   Users,
   LogOut,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useUiStore } from "@/stores/ui";
@@ -58,60 +60,100 @@ export function Sidebar() {
   const { data: me } = useSession();
   const isAdmin = me?.role === "admin" || path.startsWith("/admin");
 
+  useEffect(() => {
+    // If on a mobile device initially, start collapsed so page is not obscured
+    if (typeof window !== "undefined" && window.innerWidth < 768 && !collapsed) {
+      toggle();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleNavClick = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 768 && !collapsed) {
+      toggle();
+    }
+  };
+
   return (
-    <aside
-      className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-[width]",
-        collapsed ? "w-16" : "w-60",
+    <>
+      {/* Mobile backdrop */}
+      {!collapsed && (
+        <div
+          aria-hidden="true"
+          onClick={toggle}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden"
+        />
       )}
-    >
-      <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-3">
-        {!collapsed && (
+      <aside
+        className={cn(
+          "sticky top-0 z-50 flex h-screen shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-[width,transform] duration-200",
+          "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-64 max-md:shadow-2xl",
+          collapsed ? "max-md:-translate-x-full md:w-16" : "max-md:translate-x-0 md:w-60",
+        )}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-3">
           <Link href={isAdmin ? "/admin/factories" : "/manager/dashboard"} className="flex items-center gap-2">
             <ThreadMark />
-            <span className="font-semibold tracking-tight">SewOps</span>
+            {(!collapsed || (typeof window !== "undefined" && window.innerWidth < 768)) && (
+              <span className="font-semibold tracking-tight">SewOps</span>
+            )}
           </Link>
-        )}
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? t("app.expand") : t("app.collapse")}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
-        >
-          <ChevronLeft className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")} />
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={collapsed ? t("app.expand") : t("app.collapse")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
+          >
+            <ChevronLeft className={cn("hidden md:block h-4 w-4 transition-transform", collapsed && "rotate-180")} />
+            <X className="block md:hidden h-4 w-4" />
+          </button>
+        </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
-        <Group label={collapsed ? null : "Manager"} />
-        {managerNav.map((it) => (
-          <NavLink key={it.href} item={it} active={path === it.href} collapsed={collapsed} label={t(it.labelKey)} />
-        ))}
-        {isAdmin && (
-          <>
-            <Group label={collapsed ? null : "Admin"} className="mt-4" />
-            {adminNav.map((it) => (
-              <NavLink key={it.href} item={it} active={path === it.href} collapsed={collapsed} label={t(it.labelKey)} />
-            ))}
-          </>
-        )}
-      </nav>
-
-      <div className="border-t border-[var(--border)] p-2">
-        <button
-          type="button"
-          onClick={() => void performLogout()}
-          title={collapsed ? "Log out" : undefined}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-red-500/10 hover:text-red-500",
-            collapsed && "justify-center"
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
+          <Group label={collapsed ? null : "Manager"} />
+          {managerNav.map((it) => (
+            <NavLink
+              key={it.href}
+              item={it}
+              active={path === it.href}
+              collapsed={collapsed}
+              label={t(it.labelKey)}
+              onClick={handleNavClick}
+            />
+          ))}
+          {isAdmin && (
+            <>
+              <Group label={collapsed ? null : "Admin"} className="mt-4" />
+              {adminNav.map((it) => (
+                <NavLink
+                  key={it.href}
+                  item={it}
+                  active={path === it.href}
+                  collapsed={collapsed}
+                  label={t(it.labelKey)}
+                  onClick={handleNavClick}
+                />
+              ))}
+            </>
           )}
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Log out</span>}
-        </button>
-      </div>
-    </aside>
+        </nav>
+
+        <div className="border-t border-[var(--border)] p-2">
+          <button
+            type="button"
+            onClick={() => void performLogout()}
+            title={collapsed ? "Log out" : undefined}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-red-500/10 hover:text-red-500",
+              collapsed && "md:justify-center"
+            )}
+          >
+            <LogOut className="h-4 w-4" />
+            {(!collapsed || (typeof window !== "undefined" && window.innerWidth < 768)) && <span>Log out</span>}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -129,15 +171,18 @@ function NavLink({
   active,
   collapsed,
   label,
+  onClick,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
   label: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={item.href}
+      onClick={onClick}
       className={cn(
         "group flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-sm transition-colors",
         active
@@ -152,13 +197,14 @@ function NavLink({
       >
         {item.icon}
       </span>
-      {!collapsed && <span className="truncate">{label}</span>}
-      {!collapsed && active && (
-        <span aria-hidden className="ml-auto h-5 w-[2px] rounded-full bg-[var(--accent)]" />
+      <span className={cn("truncate", collapsed && "md:hidden")}>{label}</span>
+      {active && (
+        <span aria-hidden className={cn("ml-auto h-5 w-[2px] rounded-full bg-[var(--accent)]", collapsed && "md:hidden")} />
       )}
     </Link>
   );
 }
+
 
 function ThreadMark() {
   return (

@@ -2,7 +2,23 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
-import { ArrowRight, Cpu, Gauge, Shield, Boxes, LineChart, FileText } from "lucide-react";
+import {
+  Activity,
+  AlertOctagon,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  Cpu,
+  FileText,
+  Gauge,
+  LineChart,
+  Shield,
+  ShieldCheck,
+  Boxes,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { MagneticButton } from "@/components/marketing/MagneticButton";
 
 /* ---- Problem strip (pinned reveal) ---- */
@@ -121,7 +137,7 @@ export function HowItWorks() {
   );
 }
 
-/* ---- Role showcase (tabs with structural previews) ---- */
+/* ---- Role showcase (tabs with rich structural previews) ---- */
 export function RoleShowcase() {
   const t = useTranslations();
   return (
@@ -147,53 +163,215 @@ export function RoleShowcase() {
             ))}
           </Tabs.List>
 
+          {/* Admin tab */}
           <Tabs.Content value="admin" className="mt-8">
-            <MockFrame title="Admin · Factories">
-              <div className="grid grid-cols-3 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-20 rounded-[var(--radius-md)] border border-[var(--border)]" />
+            <MockFrame title="Admin · Factories & floor setup">
+              {/* Factories grid */}
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  { name: "Factory A", lines: 8, machines: 64, active: true },
+                  { name: "Factory B", lines: 5, machines: 40, active: true },
+                  { name: "Factory C", lines: 3, machines: 24, active: false },
+                ].map((f) => (
+                  <div
+                    key={f.name}
+                    className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium text-[var(--text)] text-sm">{f.name}</span>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          color: f.active ? "var(--status-running)" : "var(--status-offline)",
+                          background: f.active
+                            ? "color-mix(in srgb, var(--status-running) 12%, transparent)"
+                            : "color-mix(in srgb, var(--status-offline) 12%, transparent)",
+                        }}
+                      >
+                        {f.active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex gap-3 text-xs text-[var(--muted)]">
+                      <span>{f.lines} lines</span>
+                      <span>·</span>
+                      <span>{f.machines} machines</span>
+                    </div>
+                  </div>
                 ))}
+              </div>
+              {/* User roles preview */}
+              <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Recent users
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { name: "Ahmad Raza", role: "Manager", factory: "Factory A" },
+                    { name: "Sana Bibi", role: "Operator", factory: "Factory B" },
+                    { name: "Tariq Hussain", role: "Admin", factory: "All" },
+                  ].map((u) => (
+                    <div key={u.name} className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-[var(--text)]">{u.name}</span>
+                      <span className="text-[var(--muted)]">
+                        {u.role} · {u.factory}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </MockFrame>
           </Tabs.Content>
 
+          {/* Manager tab */}
           <Tabs.Content value="manager" className="mt-8">
             <MockFrame title="Manager · Live dashboard">
-              <div className="grid grid-cols-6 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-16 rounded-[var(--radius-md)] border border-[var(--border)]" />
+              {/* KPI row */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Pieces today", value: "1 240", trend: "+12%" },
+                  { label: "Target", value: "1 500", trend: "83%" },
+                  { label: "Open issues", value: "3", warn: true },
+                  { label: "Downtime", value: "18 min", neutral: true },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                      {kpi.label}
+                    </p>
+                    <p className="mt-1 font-data text-xl font-bold text-[var(--text)]">
+                      {kpi.value}
+                    </p>
+                    {kpi.trend && (
+                      <p
+                        className="text-[10px] font-semibold"
+                        style={{ color: "var(--status-running)" }}
+                      >
+                        {kpi.trend}
+                      </p>
+                    )}
+                  </div>
                 ))}
               </div>
-              <div className="mt-3 h-40 rounded-[var(--radius-md)] border border-[var(--border)]" />
-              <div className="mt-3 grid grid-cols-12 gap-1">
-                {Array.from({ length: 48 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-6 rounded-[var(--radius-sm)]"
-                    style={{
-                      background:
-                        "color-mix(in srgb, var(--status-running) " +
-                        ((i * 7) % 100) +
-                        "%, var(--border))",
-                    }}
-                  />
-                ))}
+
+              {/* Hourly bar chart mock */}
+              <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-3">
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Hourly output
+                </p>
+                <div className="flex h-20 items-end gap-1">
+                  {[65, 80, 55, 90, 100, 88, 72, 95, 60, 85, 78, 92].map((h, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-t-sm"
+                      style={{
+                        height: `${h}%`,
+                        background:
+                          i === 11
+                            ? "var(--accent)"
+                            : "color-mix(in srgb, var(--accent) 40%, var(--border))",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Line status mini-board */}
+              <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+                {["running", "running", "idle", "running", "breakdown", "running", "maintenance", "running"].map(
+                  (s, i) => (
+                    <div
+                      key={i}
+                      className="rounded-[var(--radius-sm)] py-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-white"
+                      style={{
+                        background:
+                          s === "running"
+                            ? "var(--status-running)"
+                            : s === "idle"
+                              ? "var(--status-idle)"
+                              : s === "breakdown"
+                                ? "var(--status-breakdown)"
+                                : "var(--status-maintenance)",
+                      }}
+                    >
+                      L{i + 1}
+                    </div>
+                  ),
+                )}
               </div>
             </MockFrame>
           </Tabs.Content>
 
+          {/* Operator tab */}
           <Tabs.Content value="operator" className="mt-8">
-            <MockFrame title="Operator terminal">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-3 flex h-44 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent)] text-[var(--accent-foreground)] text-3xl font-semibold">
-                  Piece completed
-                </div>
-                {["Thread", "Material", "Quality", "Machine", "Break", "Other"].map((l) => (
+            <MockFrame title="Operator terminal — machine-side tablet">
+              <div className="grid grid-cols-5 gap-3">
+                {/* Left: progress + big button */}
+                <div className="col-span-5 flex flex-col items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg)] p-5 sm:col-span-3">
+                  {/* Simple ring mock */}
+                  <div className="relative flex h-28 w-28 items-center justify-center">
+                    <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full -rotate-90">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" strokeWidth="8" />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="42"
+                        fill="none"
+                        stroke="var(--accent)"
+                        strokeWidth="8"
+                        strokeDasharray={`${2 * Math.PI * 42 * 0.72} ${2 * Math.PI * 42 * 0.28}`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="text-center">
+                      <p className="font-data text-2xl font-bold text-[var(--text)]">72%</p>
+                      <p className="text-[10px] text-[var(--muted)]">864/1 200</p>
+                    </div>
+                  </div>
+                  {/* Big button mock */}
                   <div
-                    key={l}
-                    className="h-24 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                ))}
+                    className="flex w-full items-center justify-center gap-3 rounded-[var(--radius-lg)] py-5 text-lg font-bold text-white"
+                    style={{
+                      background: "var(--accent)",
+                      boxShadow: "0 8px 0 rgba(0,0,0,0.25), 0 8px 24px rgba(255,90,31,0.3)",
+                    }}
+                  >
+                    <CheckCircle2 className="h-6 w-6 stroke-[2.5]" />
+                    Piece completed
+                  </div>
+                </div>
+
+                {/* Right: 6 issue buttons */}
+                <div className="col-span-5 grid grid-cols-3 gap-2 sm:col-span-2">
+                  {[
+                    { label: "Thread empty", icon: "✂️" },
+                    { label: "Material", icon: "📦" },
+                    { label: "Quality", icon: "🔍" },
+                    { label: "Machine issue", icon: "⚠️" },
+                    { label: "Break", icon: "☕" },
+                    { label: "Other", icon: "•••" },
+                  ].map((btn) => (
+                    <div
+                      key={btn.label}
+                      className="flex flex-col items-center justify-center gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg)] py-3 text-center text-xs font-semibold text-[var(--text)]"
+                    >
+                      <span className="text-lg">{btn.icon}</span>
+                      <span className="text-[10px] leading-tight text-[var(--muted)]">{btn.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Offline indicator */}
+              <div className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
+                <Wifi className="h-3.5 w-3.5 text-[var(--status-running)]" />
+                <span className="text-xs text-[var(--muted)]">
+                  Online · 0 events queued
+                </span>
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-[var(--status-running)]">
+                  Live
+                </span>
               </div>
             </MockFrame>
           </Tabs.Content>
@@ -211,9 +389,9 @@ function MockFrame({ title, children }: { title: string; children: React.ReactNo
           {title}
         </span>
         <div className="flex gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[var(--border)]" />
-          <span className="h-2 w-2 rounded-full bg-[var(--border)]" />
-          <span className="h-2 w-2 rounded-full bg-[var(--border)]" />
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--status-breakdown)" }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--status-idle)" }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--status-running)" }} />
         </div>
       </div>
       {children}
@@ -221,16 +399,42 @@ function MockFrame({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-/* ---- Bento features grid ---- */
+/* ---- Bento features grid (with descriptions) ---- */
 export function FeaturesBento() {
   const t = useTranslations();
   const tiles = [
-    { icon: Cpu, title: "Machine board", span: "md:col-span-2 md:row-span-2" },
-    { icon: Gauge, title: "Live KPIs" },
-    { icon: LineChart, title: "Output trends" },
-    { icon: Shield, title: "Audit trail" },
-    { icon: Boxes, title: "Work orders" },
-    { icon: FileText, title: "Shift reports", span: "md:col-span-2" },
+    {
+      icon: Cpu,
+      title: "Machine board",
+      body: "Every machine on the floor visible at a glance — status, current work order, and accumulated pieces.",
+      span: "md:col-span-2 md:row-span-2",
+    },
+    {
+      icon: Gauge,
+      title: "Live KPIs",
+      body: "Pieces completed vs. target, updated in real time via WebSocket.",
+    },
+    {
+      icon: LineChart,
+      title: "Output trends",
+      body: "Hourly and shift-level charts — no refresh needed.",
+    },
+    {
+      icon: Shield,
+      title: "Audit trail",
+      body: "Every write is logged with actor, timestamp and delta.",
+    },
+    {
+      icon: Boxes,
+      title: "Work orders",
+      body: "Create, assign and track work orders through their full lifecycle.",
+    },
+    {
+      icon: FileText,
+      title: "Shift reports",
+      body: "Auto-generated summaries with CSV export for payroll and ERP.",
+      span: "md:col-span-2",
+    },
   ];
   return (
     <section id="features" className="py-28">
@@ -238,11 +442,14 @@ export function FeaturesBento() {
         <h2 className="mb-10 text-4xl font-semibold tracking-tight md:text-6xl">
           {t("sections.features.title")}
         </h2>
-        <div className="grid auto-rows-[180px] grid-cols-1 gap-4 md:grid-cols-4">
-          {tiles.map(({ icon: Icon, title, span }) => (
+        <div className="grid auto-rows-[200px] grid-cols-1 gap-4 md:grid-cols-4">
+          {tiles.map(({ icon: Icon, title, body, span }) => (
             <SpotlightTile key={title} className={span}>
-              <Icon className="h-5 w-5 text-[var(--accent)]" />
-              <h3 className="mt-6 text-xl font-semibold tracking-tight">{title}</h3>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--accent)_30%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface))]">
+                <Icon className="h-4 w-4 text-[var(--accent)]" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold tracking-tight">{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">{body}</p>
             </SpotlightTile>
           ))}
         </div>
@@ -265,7 +472,7 @@ function SpotlightTile({ children, className }: { children: React.ReactNode; cla
       ref={ref}
       onMouseMove={onMove}
       className={
-        "app-surface group relative flex flex-col justify-end overflow-hidden rounded-[var(--radius-lg)] p-6 " +
+        "app-surface group relative flex flex-col justify-start overflow-hidden rounded-[var(--radius-lg)] p-6 " +
         (className ?? "")
       }
     >
@@ -285,23 +492,45 @@ function SpotlightTile({ children, className }: { children: React.ReactNode; cla
 /* ---- Reliability band ---- */
 export function ReliabilityBand() {
   const t = useTranslations();
+  const pillars = [
+    {
+      icon: WifiOff,
+      label: t("sections.security.offline"),
+      detail: "Events saved locally when offline, auto-synced when the connection returns. No piece is lost.",
+    },
+    {
+      icon: Shield,
+      label: t("sections.security.audit"),
+      detail: "Every action recorded with actor, timestamp and before/after delta. Immutable by design.",
+    },
+    {
+      icon: ShieldCheck,
+      label: t("sections.security.access"),
+      detail: "Admin, manager, operator — each role sees exactly what they need, nothing more.",
+    },
+  ];
+
   return (
     <section className="border-y border-[var(--border)] bg-[var(--surface)] py-20">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 md:grid-cols-4">
-        <h2 className="text-3xl font-semibold tracking-tight md:col-span-1">
-          {t("sections.security.title")}
-        </h2>
-        <div className="grid grid-cols-1 gap-6 md:col-span-3 md:grid-cols-3">
-          {[
-            t("sections.security.offline"),
-            t("sections.security.audit"),
-            t("sections.security.access"),
-          ].map((l, i) => (
-            <div key={l} className="border-l border-[var(--border)] pl-5">
-              <span className="font-data text-xs text-[var(--muted)]">0{i + 1}</span>
-              <p className="mt-2 text-lg">{l}</p>
-            </div>
-          ))}
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
+          <div className="md:col-span-1">
+            <h2 className="text-3xl font-semibold tracking-tight">
+              {t("sections.security.title")}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:col-span-3 md:grid-cols-3">
+            {pillars.map(({ icon: Icon, label, detail }, i) => (
+              <div key={label} className="border-l border-[var(--border)] pl-5">
+                <span className="font-data text-xs text-[var(--muted)]">0{i + 1}</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-[var(--accent)]" />
+                  <p className="text-lg font-semibold">{label}</p>
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{detail}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

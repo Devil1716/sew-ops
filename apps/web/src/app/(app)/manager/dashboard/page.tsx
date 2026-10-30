@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { KpiCard } from "@/components/data/KpiCard";
 import { KpiSkeleton, RowSkeleton } from "@/components/data/Skeletons";
@@ -6,7 +7,6 @@ import { ErrorState } from "@/components/data/ErrorState";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusDot } from "@/components/data/StatusDot";
-import { EChart } from "@/components/charts/EChart";
 import {
   useDashboardKpis,
   useDowntimeToday,
@@ -17,6 +17,20 @@ import { useMachines } from "@/features/machines/hooks";
 import { useOpenIssues } from "@/features/issues/hooks";
 import { formatCount, formatPercent } from "@/lib/utils";
 import type { Machine } from "@sew-ops/shared";
+
+// Lazy-load Apache ECharts wrapper to trim ~350 kB of initial bundle size
+const EChart = dynamic(
+  () => import("@/components/charts/EChart").then((m) => m.EChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[200px] items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface)] text-xs text-[var(--muted)]">
+        <span className="pulse-dot mr-2 h-2 w-2 rounded-full bg-[var(--accent)]" />
+        Loading telemetry chart…
+      </div>
+    ),
+  },
+);
 
 export default function DashboardPage() {
   const t = useTranslations();
@@ -32,23 +46,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 py-4">
       {/* Filter bar */}
-      <div className="app-surface flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs text-[var(--muted)]">
+      <div className="app-surface flex flex-wrap items-center gap-1.5 sm:gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs text-[var(--muted)]">
         {["filterDate", "filterLine", "filterMachine", "filterGarment", "filterShift"].map((k) => (
           <button
             key={k}
-            className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg)] px-2 py-1 hover:text-[var(--text)]"
+            className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1 transition-colors hover:text-[var(--text)] hover:border-[var(--accent)]"
           >
             {t(`dashboard.${k}`)}
           </button>
         ))}
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+      {/* KPI row: responsive across 2, 3, and 6 columns */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
         {kpis.isLoading ? (
           Array.from({ length: 6 }).map((_, i) => <KpiSkeleton key={i} />)
         ) : kpis.isError ? (
-          <div className="md:col-span-6">
+          <div className="col-span-2 sm:col-span-3 lg:col-span-6">
             <ErrorState onRetry={() => kpis.refetch()} />
           </div>
         ) : (
@@ -101,17 +115,20 @@ export default function DashboardPage() {
           ) : (
             <ul className="space-y-3">
               {lp.data.map((l) => (
-                <li key={l.lineId} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{l.lineName}</span>
-                    <span className="font-data text-[var(--muted)]">
+                <li
+                  key={l.lineId}
+                  className="space-y-1.5 rounded-[var(--radius-md)] p-2 transition-colors hover:bg-[color-mix(in_srgb,var(--text)_3%,transparent)]"
+                >
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="font-medium truncate mr-2">{l.lineName}</span>
+                    <span className="font-data text-xs text-[var(--muted)] shrink-0">
                       {formatCount(l.completed)} / {formatCount(l.target)} ·{" "}
                       {formatPercent(l.completed, l.target)}
                     </span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border)]">
                     <div
-                      className="h-full bg-[var(--accent)] transition-[width] duration-500"
+                      className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500"
                       style={{ width: formatPercent(l.completed, l.target) }}
                     />
                   </div>
@@ -130,14 +147,14 @@ export default function DashboardPage() {
           ) : !machines.data?.length ? (
             <EmptyState title="No machines" />
           ) : (
-            <div className="grid grid-cols-4 gap-2 md:grid-cols-6 lg:grid-cols-8">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-12 gap-2">
               {machines.data.slice(0, 48).map((m: Machine) => (
                 <div
                   key={m.id}
-                  className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-2"
+                  className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-2 transition-all hover:border-[var(--accent)]"
                 >
                   <StatusDot status={m.status} showLabel={false} />
-                  <span className="font-data text-xs">{m.code}</span>
+                  <span className="font-data text-[11px] truncate">{m.code}</span>
                 </div>
               ))}
             </div>
@@ -160,12 +177,12 @@ export default function DashboardPage() {
               {issues.data.slice(0, 8).map((i) => (
                 <li key={i.id} className="row-flash flex items-center justify-between py-2 text-sm">
                   <span className="flex flex-col">
-                    <span>{t(`issue.${camelize(i.type)}`)}</span>
+                    <span className="font-medium">{t(`issue.${camelize(i.type)}`)}</span>
                     <span className="font-data text-xs text-[var(--muted)]">
                       {i.machineCode} · {i.lineName}
                     </span>
                   </span>
-                  <span className="font-data text-xs text-[var(--muted)]">
+                  <span className="font-data text-xs text-[var(--muted)] shrink-0">
                     {i.status} · {Math.round(i.durationMinutes)} min
                   </span>
                 </li>
@@ -235,3 +252,4 @@ export default function DashboardPage() {
 function camelize(snake: string) {
   return snake.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
 }
+
