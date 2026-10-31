@@ -44,7 +44,12 @@ rollback() {
 }
 
 log "1/6 Downloading the new images"
-if ! { docker pull "$API_IMAGE" && docker pull "$WEB_IMAGE" && docker pull "$TOOLS_IMAGE"; }; then
+if [ "${SKIP_PULL:-0}" = "1" ]; then
+  for img in "$API_IMAGE" "$WEB_IMAGE" "$TOOLS_IMAGE"; do
+    docker image inspect "$img" >/dev/null 2>&1 || { echo "Image $img is not on this server."; exit 1; }
+  done
+  echo "the images were built on this server: nothing to download"
+elif ! { docker pull "$API_IMAGE" && docker pull "$WEB_IMAGE" && docker pull "$TOOLS_IMAGE"; }; then
   echo "Could not download the images. Nothing was changed."; exit 1
 fi
 
