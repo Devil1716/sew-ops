@@ -150,7 +150,8 @@ async function main() {
     const rt = { ready: false, events: 0, disconnects: 0 };
     try {
       const { io } = await import('socket.io-client');
-      socket = io(ORIGIN, { extraHeaders: { Cookie: admin.header(), Origin: WEB_ORIGIN }, transports: ['websocket'], reconnection: false });
+      socket = io(ORIGIN, { extraHeaders: { Cookie: admin.header(), Origin: WEB_ORIGIN }, transports: ['websocket'], reconnection: false, rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0' });
+      socket.on('connect_error', (e) => { rt.error = e.message; });
       socket.on('realtime.ready', () => { rt.ready = true; });
       socket.on('production.piece_completed', () => { rt.events += 1; });
       socket.on('disconnect', () => { rt.disconnects += 1; });
@@ -310,7 +311,11 @@ async function main() {
     if (rt.ready) {
       check('I: the live manager screen received piece events during the load, without dropping', rt.events > 0 && rt.disconnects === 0, `${rt.events} events, ${rt.disconnects} disconnects`);
     } else {
-      console.log('INFO  live-screen check skipped (could not open the realtime connection from this script)');
+      if (process.env.REQUIRE_REALTIME === '1') {
+        check('I: the live manager screen can connect (real-time works through the front door)', false, rt.error ?? 'no answer within 4 s');
+      } else {
+        console.log('INFO  live-screen check skipped (could not open the realtime connection from this script: ' + (rt.error ?? 'no answer within 4 s') + ')');
+      }
     }
 
     check('J: no request was throttled (in a real factory all terminals share one internet address)', rateLimited === 0, `${rateLimited} throttled responses, all retried until accepted`);

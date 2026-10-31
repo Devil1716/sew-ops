@@ -25,6 +25,7 @@ if ($Test) {
   $env:ADMIN_EMAIL = "dhanushrpoojari0@gmail.com"
   $env:ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
   $env:API_BASE = "https://localhost:8443/v1"
+  $env:REQUIRE_REALTIME = "1"
   $env:WEB_ORIGIN = "https://localhost:8443"
   $env:NODE_TLS_REJECT_UNAUTHORIZED = "0"   # the rehearsal certificate is self-made; this is only for this local test
   try {
@@ -33,7 +34,7 @@ if ($Test) {
     Write-Host "`n=== security probes through the front door ===" -ForegroundColor Cyan
     node apps/api/scripts/verify-security.mjs; $c2 = $LASTEXITCODE
   } finally {
-    Remove-Item Env:ADMIN_PASSWORD, Env:ADMIN_EMAIL, Env:API_BASE, Env:WEB_ORIGIN, Env:NODE_TLS_REJECT_UNAUTHORIZED -ErrorAction SilentlyContinue
+    Remove-Item Env:ADMIN_PASSWORD, Env:ADMIN_EMAIL, Env:API_BASE, Env:WEB_ORIGIN, Env:NODE_TLS_REJECT_UNAUTHORIZED, Env:REQUIRE_REALTIME -ErrorAction SilentlyContinue
   }
   Write-Host ""
   if ($c1 -eq 0 -and $c2 -eq 0) { Write-Host "REHEARSAL TESTS PASSED" -ForegroundColor Green } else { Write-Host "REHEARSAL TESTS FAILED: send me the FAIL lines" -ForegroundColor Red }

@@ -1,0 +1,106 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where to deploy
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    if: github.event_name == 'workflow_dispatch' || vars.STAGING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      registry: ${{ steps.meta.outputs.registry }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Work out the image names
+        id: meta
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "registry=ghcr.io/$OWNER" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - name: Log in to the GitHub container registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+      - name: Build and publish the images
+        env:
+          REG: ${{ steps.meta.outputs.registry }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          LABEL="org.opencontainers.image.source=https://github.com/$REPO"
+          docker build --label "$LABEL" -f deploy/api.Dockerfile --target runtime -t "$REG/sewops-api:$TAG" .
+          docker build --label "$LABEL" -f deploy/api.Dockerfile --target tools -t "$REG/sewops-tools:$TAG" .
+          docker build --label "$LABEL" -f deploy/web.Dockerfile -t "$REG/sewops-web:$TAG" .
+          docker push "$REG/sewops-api:$TAG"
+          docker push "$REG/sewops-tools:$TAG"
+          docker push "$REG/sewops-web:$TAG"
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare the secure connection
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Copy the deployment files to the server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          OPTS="-i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=yes"
+          scp $OPTS deploy/docker-compose.prod.yml deploy/Caddyfile "$SSH_USER@$SSH_HOST:/opt/sewops/"
+          scp $OPTS deploy/deploy.sh deploy/backup.sh deploy/bootstrap-admin.sh "$SSH_USER@$SSH_HOST:/opt/sewops/scripts/"
+          ssh $OPTS "$SSH_USER@$SSH_HOST" "chmod +x /opt/sewops/scripts/*.sh"
+      - name: Deploy (migrate, restart, health check, automatic rollback)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+          REG: ${{ needs.images.outputs.registry }}
+          TAG: ${{ needs.images.outputs.tag }}
+        run: |
+          set -euo pipefail
+          OPTS="-i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=yes"
+          echo "$GH_TOKEN" | ssh $OPTS "$SSH_USER@$SSH_HOST" "docker login ghcr.io -u '$ACTOR' --password-stdin"
+          ssh $OPTS "$SSH_USER@$SSH_HOST" "API_IMAGE=$REG/sewops-api:$TAG WEB_IMAGE=$REG/sewops-web:$TAG TOOLS_IMAGE=$REG/sewops-tools:$TAG /opt/sewops/scripts/deploy.sh"
+      - name: Check the live site
+        if: ${{ vars.SITE_URL != '' }}
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          curl --retry 12 --retry-delay 10 --retry-all-errors -fsS "$SITE_URL/health" | tee /dev/stderr | grep -q '"status":"ok"'

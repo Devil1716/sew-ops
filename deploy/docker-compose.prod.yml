@@ -90,7 +90,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     logging: *logging
 
-  # one-off jobs: docker compose run --rm migrate
+  # one-off jobs: docker compose run --rm migrate   (and the first-admin setup, see bootstrap-admin.sh)
   migrate:
     profiles: ["tools"]
     image: ${TOOLS_IMAGE:-sewops-tools:local}
@@ -102,7 +102,14 @@ services:
       db:
         condition: service_healthy
     environment:
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      FACTORY_NAME: ${FACTORY_NAME:-}
+      FACTORY_CODE: ${FACTORY_CODE:-}
+      FACTORY_TZ: ${FACTORY_TZ:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     command: ["npx", "prisma", "migrate", "deploy"]
 
 volumes:
