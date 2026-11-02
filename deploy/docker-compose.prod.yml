@@ -35,7 +35,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "4000"
-      TRUST_PROXY_HOPS: "1"
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       CORS_ORIGIN: ${PUBLIC_ORIGIN}
       ALLOW_LOCALHOST_ORIGIN: ${ALLOW_LOCALHOST_ORIGIN:-false}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
