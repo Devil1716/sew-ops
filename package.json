@@ -7,12 +7,20 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run prisma:generate",
+    "prisma:generate": "prisma generate --schema=apps/api/prisma/schema.prisma",
+    "prisma:migrate:deploy": "prisma migrate deploy --schema=apps/api/prisma/schema.prisma",
     "dev": "npm run dev -w @sew-ops/web",
-    "build": "npm run build -w @sew-ops/shared && npm run build -w @sew-ops/web",
+    "dev:api": "npm run dev -w @sew-ops/api",
+    "build": "npm run build -w @sew-ops/shared && npm run build -w @sew-ops/api && npm run build -w @sew-ops/web",
+    "build:shared": "npm run build -w @sew-ops/shared",
+    "build:api": "npm run build -w @sew-ops/shared && npm run build -w @sew-ops/api",
+    "build:web": "npm run build -w @sew-ops/shared && npm run build -w @sew-ops/web",
     "lint": "npm run lint -w @sew-ops/web",
-    "typecheck": "npm run typecheck -w @sew-ops/web",
-    "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\"",
-    "dev:api": "npm run dev -w @sew-ops/api"
+    "typecheck": "npm run typecheck -w @sew-ops/shared && npm run typecheck -w @sew-ops/api && npm run typecheck -w @sew-ops/web",
+    "typecheck:api": "npm run typecheck -w @sew-ops/api",
+    "typecheck:web": "npm run typecheck -w @sew-ops/web",
+    "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\""
   },
   "devDependencies": {
     "prettier": "^3.4.2",

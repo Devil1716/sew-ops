@@ -1,31 +1,52 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express, { Express } from 'express';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AppModule } from './app.module';
-import { allowedOrigins } from './common/origins';
-import { SocketAdapter } from './realtime/socket.adapter';
+import { configureApp } from './configure-app';
 
+let cachedServer: Express | null = null;
+
+/**
+ * Creates or retrieves the cached Express instance backed by NestJS.
+ * Essential for Vercel Serverless Functions to avoid re-bootstrapping NestJS on warm requests.
+ */
+export async function createServer(): Promise<Express> {
+  if (cachedServer) {
+    return cachedServer;
+  }
+  const expressApp: Express = express();
+  const adapter = new ExpressAdapter(expressApp);
+  const app = await NestFactory.create(AppModule, adapter);
+  configureApp(app);
+  await app.init();
+  cachedServer = expressApp;
+  return expressApp;
+}
+
+/**
+ * Vercel Serverless Function entrypoint handler.
+ */
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const server = await createServer();
+  return (server as any)(req, res);
+}
+
+/**
+ * Standalone HTTP server for local dev (npm run dev:api) and Docker production.
+ */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Behind the HTTPS front door every request arrives from the proxy: trust exactly its forwarded address,
-  // so the login rate limit and the audit log see the real visitor (0 = no proxy, e.g. on your PC in dev mode).
-  const proxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 0);
-  if (Number.isInteger(proxyHops) && proxyHops > 0) {
-    app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
-  }
-
-  app.use(helmet());
-  app.use(cookieParser());
-  app.setGlobalPrefix('v1', { exclude: ['health'] });
-  app.enableCors({ origin: allowedOrigins(), credentials: true });
-  app.useWebSocketAdapter(new SocketAdapter(app));
-  app.enableShutdownHooks();
+  configureApp(app);
 
   const port = Number(process.env.PORT ?? 4000);
   await app.listen(port);
   new Logger('Bootstrap').log(`Sew Ops API running on http://localhost:${port}`);
 }
 
-void bootstrap();
+// In serverless environments like Vercel, requests are dispatched via the exported handler above.
+// Only bind to a TCP port if running standalone (local dev, test runner, Docker).
+if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  void bootstrap();
+}

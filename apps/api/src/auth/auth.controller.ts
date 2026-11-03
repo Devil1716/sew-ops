@@ -104,7 +104,15 @@ export class AuthController {
   // ---------- helpers ----------
 
   private meta(req: Request): ClientMeta {
-    return { ip: req.ip ?? null, userAgent: req.headers['user-agent'] ?? null };
+    const headers = req.headers ?? {};
+    const forwarded = headers['x-forwarded-for'] || headers['x-vercel-forwarded-for'];
+    let ip = req.ip ?? null;
+    if (typeof forwarded === 'string' && forwarded.trim()) {
+      ip = forwarded.split(',')[0].trim() || ip;
+    } else if (typeof headers['x-real-ip'] === 'string' && headers['x-real-ip'].trim()) {
+      ip = headers['x-real-ip'].trim();
+    }
+    return { ip, userAgent: req.headers['user-agent'] ?? null };
   }
 
   private cookieBase() {

@@ -141,7 +141,7 @@ export function HeroScene3D({ scrollProgress = 0 }: { scrollProgress?: number })
     resizeObserver.observe(container);
 
     let animationFrameId: number;
-    let clock = new THREE.Clock();
+    const clock = new THREE.Clock();
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
