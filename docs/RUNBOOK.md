@@ -6,7 +6,8 @@ How to run, check, back up and safely change the system. Written for the person 
 
 | Part | What it is | Address |
 |---|---|---|
-| Database | PostgreSQL 16 in Docker, container `sewops-db` | inside Docker |
+| Database | PostgreSQL 16 in Docker, container `sewops-db` | localhost:5432 |
+| Realtime adapter | Redis 7 in Docker | localhost:6380 |
 | API | NestJS server (all the rules and data) | http://localhost:4000 (health: `/health`) |
 | Website | Next.js app (manager, admin and operator screens) | http://localhost:3000 |
 
@@ -15,14 +16,15 @@ The website only talks to the API. The API is the only thing that talks to the d
 ## 2. Start and stop
 
 1. Open **Docker Desktop** and wait for "Engine running".
-2. In PowerShell: `.\scripts\start-dev.ps1` (from `C:\dev\sew-ops\sew-ops`). It starts the database, the API and the website and ends with a green `READY.`
-3. To stop: close the two windows named **SEW OPS API** and **SEW OPS WEB**. Docker can stay on.
+2. In PowerShell, copy `.env.example`, `apps/api/.env.example`, and `apps/web/.env.example` to `.env`, `apps/api/.env`, and `apps/web/.env.local`. Set the same `POSTGRES_PASSWORD` in Compose and the API database URLs. Run `npm ci`, `docker compose up -d db redis`, and `npm run prisma:migrate:deploy` once for a new database.
+3. Run `.\scripts\start-dev.ps1` from the repository root. It starts/confirms Postgres and Redis, then launches the API and website and ends with `READY.`. Or run `npm run dev:api` and `npm run dev` in separate terminals.
+4. To stop: close the two windows named **SEW OPS API** and **SEW OPS WEB**. Docker can stay on.
 
 ## 3. Is it healthy?
 
 - `http://localhost:4000/health` should say `"status":"ok"` and `"database":"up"`.
 - Admin screen **Settings > System status** shows the same live.
-- The coloured badge in the top bar says **live** when real-time updates are flowing.
+- The coloured badge in the top bar says **live** when Socket.IO is connected. If it says **Reconnecting**, dashboard KPIs still poll every five seconds. The operator terminal queues production events offline and replays them after reconnect using idempotency keys.
 - Full check (takes a few minutes, cleans up after itself): `.\scripts\verify-all.ps1`.
 - Security check: `.\scripts\security-review.ps1`.
 
@@ -79,21 +81,20 @@ Everything entered after the backup was taken is lost, so back up often.
 | Operator account locked | 5 wrong PINs: locked for 15 minutes | Wait, or Admin > Users > Reset PIN |
 | Operator: "under maintenance" | A manager put the machine in maintenance | Manager > Machines > End maintenance |
 | Operator: "No active work order" | The order is not Active, or is not assigned to that machine's line | Manager > Work Orders |
-| Numbers not moving on a screen | Real-time link lost (badge says Reconnecting) | Check the API window; the screen catches up by itself on reconnect |
+| Numbers not moving on a screen | Socket.IO is reconnecting or API requests fail | Check API health and browser Network/Console. Dashboard KPIs poll every five seconds without the socket; operator events queue offline and replay on reconnect. |
 | "Too many attempts" | Rate limit on logins | Wait one minute |
 | Forgot the admin password | | `.\scripts\reset-admin-password.ps1` |
 | Anything strange | | Note the time and the **request id** (in the browser's network tab, header `X-Request-Id`); the API log has a line with that id |
 
-## 7. Before going live (the "TODO" items from the security review)
+## 7. Production deployment
 
-- [ ] Set `NODE_ENV=production` on the API host. The API then refuses to start with a weak secret or a non-https website address.
-- [ ] `CORS_ORIGIN` = the real https website address. `NEXT_PUBLIC_API_BASE_URL` = the real https API address.
-- [ ] `NEXT_PUBLIC_USE_FIXTURES=false` for the website (it is the demo-data switch).
-- [ ] Cookies need `Secure` over https; set `COOKIE_DOMAIN` if the website and API are on different subdomains. Re-run `.\scripts\security-review.ps1` against the live address.
-- [ ] Change the admin password (top-right menu > Change password): the first one was shared in a chat during development.
-- [ ] Off-site backups (host snapshots or cloud storage) and one real restore test there.
-- [ ] No critical or high library vulnerabilities (`npm audit --omit=dev`).
-- [ ] Run `.\scripts\verify-all.ps1` once more against the final build.
+Production uses two Vercel projects: web root `apps/web` and API root `apps/api`. Browser API calls use the web origin's `/v1` rewrite; auth cookies are host-only, httpOnly, and Secure on HTTPS. Set the web project's build-time `INTERNAL_API_URL` to the API origin. The API needs hosted PostgreSQL (`DATABASE_URL` pooled, `DIRECT_URL` direct), hosted Redis (`REALTIME_REDIS_URL` or `REDIS_URL`), a strong `JWT_ACCESS_SECRET`, and exact HTTPS `CORS_ORIGIN`. Set `NEXT_PUBLIC_API_BASE_URL=/v1` and `NEXT_PUBLIC_USE_FIXTURES=false` on web. Do not set `COOKIE_DOMAIN` or local-only `ALLOW_LOCALHOST_ORIGIN`.
+
+Apply schema changes once before routing traffic with `npm run prisma:migrate:deploy` from the repository root, using the target database URLs. Bootstrap the first admin with `./apps/api/scripts/create-admin.ps1` against that database; there is no seed account. Full project settings, environment variables, DNS, Socket.IO deployment checks, and verification status are in [DEPLOYMENT.md](DEPLOYMENT.md). The web-to-API external Socket.IO rewrite timed out locally and remains unverified on Vercel; dashboard polling was verified locally.
+
+- [ ] Verify Vercel health, login/refresh cookies through the web origin, work-order assignment, operator recording, dashboard polling, Socket.IO, Redis cross-instance fan-out, and rate limiting after deployment.
+- [ ] Change the bootstrapped admin password after first login.
+- [ ] Configure off-site backups and complete a restore test with the hosted provider.
 
 ## 8. Changing the system safely
 
@@ -101,7 +102,7 @@ Everything entered after the backup was taken is lost, so back up often.
 2. Make the change.
 3. `.\scripts\verify-all.ps1` must end with `EVERYTHING PASSED`.
 4. `git add .`, `git commit`, `git push`. GitHub then runs the type checks automatically (repo > Actions tab: green is good).
-5. Database changes: edit `apps/api/prisma/schema.prisma`, then `npm run db:migrate -w @sew-ops/api -- --name what_changed`. Never edit a migration that has already been applied; add a new one. Renaming or removing a column needs two releases (add the new, move the data, remove the old later).
+5. Database changes: edit `apps/api/prisma/schema.prisma`, then `npm run db:migrate -w @sew-ops/api -- --name what_changed`. Never edit a migration that has already been applied; add a new one. For hosted deployment, apply the committed migration separately with `npm run prisma:migrate:deploy` before directing traffic. Renaming or removing a column needs two releases (add the new, move the data, remove the old later).
 
 ## 9. Rules the system keeps (do not break them)
 
