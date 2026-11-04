@@ -17,6 +17,21 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      # Port 6379 may already be occupied by a separately managed local Redis.
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - sewops_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   sewops_pgdata:
-  
+  sewops_redisdata:

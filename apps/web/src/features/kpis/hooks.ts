@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { DashboardKpis, LineProgress, TrendPoint } from "@sew-ops/shared";
 import { api } from "@/lib/api/client";
+import { useConnectionStore } from "@/stores/connection";
 
 export type DashboardKpisLive = DashboardKpis & {
   completedToday: number;
@@ -30,37 +31,42 @@ export const dashboardKeys = {
   downtime: ["dashboard", "downtime"] as const,
 };
 
-// refetchInterval is only a safety net; live updates arrive over the socket.
-const SAFETY_NET_MS = 60_000;
+// Keep the same dashboard current during socket reconnects or deployments where
+// WebSocket upgrades are unavailable. Normal connected mode stays event-driven.
+const DISCONNECTED_REFRESH_MS = 5_000;
 
 export function useDashboardKpis() {
+  const realtime = useConnectionStore((s) => s.status);
   return useQuery({
     queryKey: dashboardKeys.kpis,
     queryFn: () => api.get<DashboardKpisLive>("/dashboard/kpis"),
-    refetchInterval: SAFETY_NET_MS,
+    refetchInterval: realtime === "live" ? false : DISCONNECTED_REFRESH_MS,
   });
 }
 
 export function useLineProgress() {
+  const realtime = useConnectionStore((s) => s.status);
   return useQuery({
     queryKey: dashboardKeys.lines,
     queryFn: () => api.get<LineProgressLive[]>("/dashboard/lines"),
-    refetchInterval: SAFETY_NET_MS,
+    refetchInterval: realtime === "live" ? false : DISCONNECTED_REFRESH_MS,
   });
 }
 
 export function useOutputTrend(window = "24h") {
+  const realtime = useConnectionStore((s) => s.status);
   return useQuery({
     queryKey: dashboardKeys.trend(window),
     queryFn: () => api.get<TrendPoint[]>(`/dashboard/trend?window=${window}`),
-    refetchInterval: SAFETY_NET_MS,
+    refetchInterval: realtime === "live" ? false : DISCONNECTED_REFRESH_MS,
   });
 }
 
 export function useDowntimeToday() {
+  const realtime = useConnectionStore((s) => s.status);
   return useQuery({
     queryKey: dashboardKeys.downtime,
     queryFn: () => api.get<DowntimeSlice[]>("/dashboard/downtime"),
-    refetchInterval: SAFETY_NET_MS,
+    refetchInterval: realtime === "live" ? false : DISCONNECTED_REFRESH_MS,
   });
 }
