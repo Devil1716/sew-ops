@@ -6,7 +6,7 @@ Status labels in this document mean:
 - **NOT VERIFIED** — not exercised in a real Vercel deployment, or an observed attempt failed.
 - **NEEDS USER ACTION** — requires Vercel, database, DNS, or account access from the project owner.
 
-Last reviewed: 2026-11-04.
+Last reviewed: 2026-11-08.
 
 ## Architecture and current platform evidence
 
@@ -166,8 +166,8 @@ If anything fails, share these redacted diagnostics:
 
 | Item | Status | Evidence / remaining work |
 |---|---|---|
-| Part 6 clean install (`npm ci`) | **NOT VERIFIED / FAILED** | Two attempts stopped with Windows `EPERM` unlinking `node_modules/.prisma/client/query_engine-windows.dll.node`; no Node processes or listeners on ports 3000/4000 were found between attempts. |
-| Part 6 root production build (`npm run build`) | **NOT VERIFIED / FAILED** | After `npm ci` failed, the build stopped in the shared workspace with `'tsc' is not recognized as an internal or external command`; it did not reach API or web build. Prior Part 5 build is historical evidence only and does not verify this clean-install regression. |
+| Clean install (`npm ci`) | **NOT VERIFIED / prior Windows failure** | Earlier attempts stopped with Windows `EPERM` unlinking `node_modules/.prisma/client/query_engine-windows.dll.node`. A clean install has not been repeated in this deployment review. |
+| Root production build (`npm run build`) | **VERIFIED 2026-11-08** | Shared TypeScript build, Prisma Client generation, NestJS build, and Next.js production build completed. Replaced `next/font/google` downloads with local system-font stacks so builds do not need Google Fonts network access. Next reports four existing lint warnings in admin/factories and manager downtime, lines, and machines. |
 | Empty local Postgres migration | **VERIFIED** | Three migrations applied to an empty database; Prisma reported up to date. |
 | Local production login/refresh, work-order assignment, operator recording, dashboard polling | **VERIFIED** | Auth cookies/refresh and two recorded pieces were exercised locally; polling advanced dashboard totals while badge showed Reconnecting. |
 | Local Socket.IO API origin | **VERIFIED** | Authenticated handshake received `realtime.ready` when Origin matched configured `https://localhost:3000`. |

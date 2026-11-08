@@ -4,6 +4,10 @@
 
 /* ---------- Design tokens: "Precision thread" ---------- */
 :root {
+  --font-geist-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-instrument: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+
   --bg: #f6f4f0; /* warm paper */
   --surface: #ffffff;
   --border: #e3dfd8;
