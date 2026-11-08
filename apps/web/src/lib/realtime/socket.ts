@@ -6,7 +6,12 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (socket) return socket;
-  socket = io(REALTIME_URL || "/", {
+  const realtimeUrl =
+    REALTIME_URL ||
+    (process.env.NODE_ENV === "development" && typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.hostname}:4000`
+      : "/");
+  socket = io(realtimeUrl, {
     autoConnect: true,
     transports: ["websocket"],
     withCredentials: true, // the httpOnly login cookie authenticates the socket

@@ -31,8 +31,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 py-4">
+      <header className="flex flex-wrap items-end justify-between gap-4 px-1 pb-1">
+        <div>
+          <p className="font-data text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Manager workspace · Live overview</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">Production at a glance</h1>
+          <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">A shared view of today’s output, machine activity, and issues across the floor.</p>
+        </div>
+        <div className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-[var(--shadow-1)]">
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--status-running)] shadow-[0_0_0_5px_color-mix(in_srgb,var(--status-running)_14%,transparent)]" />
+          <span className="font-medium">Floor status</span><span className="text-[var(--muted)]">Live</span>
+        </div>
+      </header>
       {/* Filter bar */}
-      <div className="app-surface flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs text-[var(--muted)]">
+      <div className="app-surface flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2.5 text-xs text-[var(--muted)]">
         {["filterDate", "filterLine", "filterMachine", "filterGarment", "filterShift"].map((k) => (
           <button
             key={k}
@@ -44,7 +55,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         {kpis.isLoading ? (
           Array.from({ length: 6 }).map((_, i) => <KpiSkeleton key={i} />)
         ) : kpis.isError ? (

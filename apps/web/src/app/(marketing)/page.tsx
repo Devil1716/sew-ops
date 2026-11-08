@@ -1,4 +1,5 @@
 import { Hero } from "@/components/marketing/Hero";
+import FloorCarousel from "@/components/marketing/FloorCarousel";
 import {
   CtaFooter,
   FeaturesBento,
@@ -13,6 +14,7 @@ export default function MarketingHomePage() {
     <>
       <Hero />
       <ProblemStrip />
+      <FloorCarousel />
       <HowItWorks />
       <RoleShowcase />
       <FeaturesBento />

@@ -13,6 +13,7 @@ import {
   Cpu,
   FileText,
   LayoutGrid,
+  LayoutDashboard,
   ScrollText,
   ShieldCheck,
   Users,
@@ -41,6 +42,7 @@ const managerNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
+  { href: "/admin/dashboard", labelKey: "app.dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { href: "/admin/factories", labelKey: "app.factories", icon: <Building2 className="h-4 w-4" /> },
   { href: "/admin/floor", labelKey: "app.floor", icon: <Cpu className="h-4 w-4" /> },
   { href: "/admin/users", labelKey: "app.users", icon: <Users className="h-4 w-4" /> },
@@ -67,7 +69,7 @@ export function Sidebar() {
     >
       <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-3">
         {!collapsed && (
-          <Link href={isAdmin ? "/admin/factories" : "/manager/dashboard"} className="flex items-center gap-2">
+          <Link href={isAdmin ? "/admin/dashboard" : "/manager/dashboard"} className="flex items-center gap-2">
             <ThreadMark />
             <span className="font-semibold tracking-tight">SewOps</span>
           </Link>

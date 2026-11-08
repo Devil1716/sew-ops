@@ -2,7 +2,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
-import { ArrowRight, Cpu, Gauge, Shield, Boxes, LineChart, FileText } from "lucide-react";
+import { ArrowRight, Cpu, Gauge, Shield, Boxes, LineChart, FileText, Factory, Users, ClipboardCheck, Scissors, CircleCheck, Clock3, Activity } from "lucide-react";
 import { MagneticButton } from "@/components/marketing/MagneticButton";
 
 /* ---- Problem strip (pinned reveal) ---- */
@@ -57,7 +57,10 @@ export function ProblemStrip() {
 export function HowItWorks() {
   const t = useTranslations();
   const ref = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
+  const [travel, setTravel] = useState(0);
 
   useEffect(() => {
     const onScroll = () => {
@@ -75,18 +78,30 @@ export function HowItWorks() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+    if (!viewport || !track) return;
+    const measure = () => setTravel(Math.max(0, track.scrollWidth - viewport.clientWidth));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, []);
+
   const stages = [
-    { title: t("sections.how.stage1Title"), body: t("sections.how.stage1Body") },
-    { title: t("sections.how.stage2Title"), body: t("sections.how.stage2Body") },
-    { title: t("sections.how.stage3Title"), body: t("sections.how.stage3Body") },
-    { title: t("sections.how.stage4Title"), body: t("sections.how.stage4Body") },
+    { title: t("sections.how.stage1Title"), body: t("sections.how.stage1Body"), width: 320, height: 255, top: 4 },
+    { title: t("sections.how.stage2Title"), body: t("sections.how.stage2Body"), width: 280, height: 230, top: 80 },
+    { title: t("sections.how.stage3Title"), body: t("sections.how.stage3Body"), width: 370, height: 270, top: 28 },
+    { title: t("sections.how.stage4Title"), body: t("sections.how.stage4Body"), width: 300, height: 245, top: 104 },
   ];
 
   return (
     <section id="how" ref={ref} className="relative h-[320vh]">
       <div className="sticky top-0 flex h-screen w-full items-center overflow-hidden">
         <div className="mx-auto w-full max-w-7xl px-6">
-          <div className="mb-10 flex items-end justify-between">
+          <div className="mb-7 flex items-end justify-between md:mb-10">
             <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
               {t("sections.how.title")}
             </h2>
@@ -94,31 +109,54 @@ export function HowItWorks() {
               {String(Math.ceil(progress * stages.length)).padStart(2, "0")} / 0{stages.length}
             </div>
           </div>
-          <div
-            className="relative flex items-stretch gap-6 will-change-transform"
-            style={{ transform: `translateX(-${progress * 60}%)` }}
-          >
-            {stages.map((s, i) => (
-              <article
-                key={s.title}
-                className="app-surface relative flex min-h-[55vh] w-[70vw] max-w-xl shrink-0 flex-col justify-between rounded-[var(--radius-xl)] p-8 md:w-[42vw]"
-              >
-                <span className="font-data text-xs text-[var(--muted)]">
-                  Stage 0{i + 1}
-                </span>
-                <h3 className="mt-6 text-3xl font-semibold tracking-tight">{s.title}</h3>
-                <p className="mt-3 text-[var(--muted)]">{s.body}</p>
-                <div className="mt-auto flex items-center gap-3 pt-10">
-                  <span className="h-px flex-1 bg-[color-mix(in_srgb,var(--accent)_60%,var(--border))]" />
-                  <ArrowRight className="h-4 w-4 text-[var(--accent)]" />
+          <div ref={viewportRef} className="relative h-[390px] overflow-hidden rounded-[var(--radius-xl)] bg-[radial-gradient(var(--border)_0.8px,transparent_0.8px)] [background-size:18px_18px] [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+            <div ref={trackRef} className="relative flex h-full w-max items-start" style={{ transform: `translateX(-${progress * travel}px)` }}>
+              {stages.map((s, i) => (
+                <div key={s.title} className="relative flex shrink-0 items-start" style={{ marginTop: s.top }}>
+                  <article className="app-surface relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] p-4 shadow-[var(--shadow-1)] md:p-5" style={{ width: `min(${s.width}px, 72vw)`, height: s.height }}>
+                    <div className="flex items-center justify-between"><span className="font-data text-[10px] uppercase tracking-widest text-[var(--muted)]">Stage 0{i + 1}</span><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))] text-xs font-semibold text-[var(--accent)]">0{i + 1}</span></div>
+                    <h3 className="text-lg font-semibold leading-tight tracking-tight md:text-xl">{s.title}</h3>
+                    <p className="max-w-sm text-xs leading-relaxed text-[var(--muted)] md:text-sm">{s.body}</p>
+                    <div className="mt-auto"><StageVisual stage={i} /></div>
+                  </article>
+                  {i < stages.length - 1 && <FlowConnector center={s.height / 2} delta={(stages[i + 1].top + stages[i + 1].height / 2) - (s.top + s.height / 2)} />}
                 </div>
-              </article>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
+}
+
+function StageVisual({ stage }: { stage: number }) {
+  const Icon = [Scissors, Users, Activity, ClipboardCheck][stage];
+  return (
+    <div aria-hidden="true" className={`relative flex h-12 w-full items-center justify-between overflow-hidden rounded-lg border border-[var(--border)] px-3 ${stage === 0 ? "bg-[radial-gradient(ellipse_at_25%_50%,color-mix(in_srgb,var(--accent)_24%,transparent),var(--surface))]" : stage === 1 ? "bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_12%,var(--surface)),var(--surface))]" : stage === 2 ? "bg-[radial-gradient(ellipse_at_75%_25%,color-mix(in_srgb,var(--status-running)_20%,var(--surface)),var(--surface))]" : "bg-[linear-gradient(145deg,var(--surface),color-mix(in_srgb,var(--accent)_12%,var(--surface)))]"}`}>
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))]"><Icon className="h-4 w-4 text-[var(--accent)]" /></span>
+      <StageGraphic stage={stage} />
+    </div>
+  );
+}
+
+function FlowConnector({ center, delta }: { center: number; delta: number }) {
+  const startY = 90;
+  const endY = Math.max(14, Math.min(166, startY + delta));
+  const bendY = endY > startY ? startY + 10 : startY - 10;
+  const endBendY = endY > startY ? endY - 10 : endY + 10;
+  return <svg aria-hidden="true" className="w-[88px] shrink-0 overflow-visible" height="180" viewBox="0 0 88 180" fill="none" style={{ marginTop: center - startY }}>
+    <path d={`M0 ${startY}H30Q40 ${startY} 40 ${bendY}V${endBendY}Q40 ${endY} 50 ${endY}H88`} stroke="var(--border)" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="0" cy={startY} r="4" fill="var(--accent)" />
+    <circle cx="88" cy={endY} r="4" fill="var(--accent)" />
+  </svg>;
+}
+
+function StageGraphic({ stage }: { stage: number }) {
+  if (stage === 0) return <div className="flex items-end gap-1.5"><span className="h-6 w-2 rounded-full bg-[var(--accent)]/40"/><span className="h-10 w-2 rounded-full bg-[var(--accent)]/60"/><span className="h-7 w-2 rounded-full bg-[var(--accent)]"/></div>;
+  if (stage === 1) return <div className="flex -space-x-2">{[1, 2, 3].map((n) => <span key={n} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--surface)] bg-[color-mix(in_srgb,var(--accent)_18%,var(--surface))] text-[10px] font-semibold text-[var(--accent)]">{n}</span>)}</div>;
+  if (stage === 2) return <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[var(--status-running)]"/><span className="text-xs font-medium">Running</span></div>;
+  return <div className="space-y-1.5">{[1, 2, 3].map((n) => <span key={n} className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_18%,var(--surface))]"/><span className="h-1 w-9 rounded bg-[var(--border)]"/></span>)}</div>;
 }
 
 /* ---- Role showcase (tabs with structural previews) ---- */
@@ -149,58 +187,29 @@ export function RoleShowcase() {
 
           <Tabs.Content value="admin" className="mt-8">
             <MockFrame title="Admin · Factories">
-              <div className="grid grid-cols-3 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-20 rounded-[var(--radius-md)] border border-[var(--border)]" />
-                ))}
-              </div>
+              <RolePanel icon={Factory} eyebrow="Workspace overview" title="Every factory, one clear view" body="Set up sites, manage teams and keep access aligned with each facility." stats={[["Factories", "04"], ["Active teams", "18"], ["People", "246"]]} rows={[["North plant", "8 lines · Running"], ["Central unit", "6 lines · Running"], ["Sample room", "4 lines · Setup"]]} />
             </MockFrame>
           </Tabs.Content>
 
           <Tabs.Content value="manager" className="mt-8">
             <MockFrame title="Manager · Live dashboard">
-              <div className="grid grid-cols-6 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-16 rounded-[var(--radius-md)] border border-[var(--border)]" />
-                ))}
-              </div>
-              <div className="mt-3 h-40 rounded-[var(--radius-md)] border border-[var(--border)]" />
-              <div className="mt-3 grid grid-cols-12 gap-1">
-                {Array.from({ length: 48 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-6 rounded-[var(--radius-sm)]"
-                    style={{
-                      background:
-                        "color-mix(in srgb, var(--status-running) " +
-                        ((i * 7) % 100) +
-                        "%, var(--border))",
-                    }}
-                  />
-                ))}
-              </div>
+              <RolePanel icon={Gauge} eyebrow="Today's production" title="Keep the floor moving" body="Spot output gaps early, rebalance work and follow up on issues while the shift is live." stats={[["Target", "1,240 pcs"], ["Completed", "986 pcs"], ["Efficiency", "82%"]]} rows={[["Line 01", "On target · 92%"], ["Line 02", "Needs attention · 68%"], ["Line 03", "On target · 88%"]]} />
             </MockFrame>
           </Tabs.Content>
 
           <Tabs.Content value="operator" className="mt-8">
             <MockFrame title="Operator terminal">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-3 flex h-44 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent)] text-[var(--accent-foreground)] text-3xl font-semibold">
-                  Piece completed
-                </div>
-                {["Thread", "Material", "Quality", "Machine", "Break", "Other"].map((l) => (
-                  <div
-                    key={l}
-                    className="h-24 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                ))}
-              </div>
+              <RolePanel icon={Scissors} eyebrow="Operator workspace" title="Simple actions, right at the machine" body="See your assigned operation, record completed pieces and flag a blocker in a tap." stats={[["Your operation", "Side seam"], ["Order", "WO-2048"], ["Progress", "124 / 180"]]} rows={[["Record output", "Add completed pieces"], ["Report an issue", "Machine · material · quality"]]} />
             </MockFrame>
           </Tabs.Content>
         </Tabs.Root>
       </div>
     </section>
   );
+}
+
+function RolePanel({ icon: Icon, eyebrow, title, body, stats, rows }: { icon: typeof Factory; eyebrow: string; title: string; body: string; stats: string[][]; rows: string[][] }) {
+  return <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]"><div className="flex flex-col justify-center rounded-[var(--radius-lg)] bg-[radial-gradient(ellipse_at_top_right,color-mix(in_srgb,var(--accent)_16%,transparent),transparent_65%)] p-6 md:p-8"><span className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--muted)]"><Icon className="h-4 w-4 text-[var(--accent)]" />{eyebrow}</span><h3 className="mt-5 max-w-md text-2xl font-semibold tracking-tight md:text-3xl">{title}</h3><p className="mt-3 max-w-md leading-relaxed text-[var(--muted)]">{body}</p></div><div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background)] p-4 md:p-6"><div className="grid grid-cols-3 gap-2">{stats.map(([label, value]) => <div key={label} className="rounded-lg border border-[var(--border)] p-3"><p className="text-[10px] text-[var(--muted)] md:text-xs">{label}</p><p className="mt-1 text-sm font-semibold md:text-lg">{value}</p></div>)}</div><div className="mt-5 space-y-2">{rows.map(([label, detail], i) => <div key={label} className="flex items-center gap-3 rounded-lg border border-[var(--border)] p-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface)]"><CircleCheck className="h-4 w-4 text-[var(--accent)]" /></span><div className="min-w-0 flex-1"><p className="text-sm font-medium">{label}</p><p className="text-xs text-[var(--muted)]">{detail}</p></div>{i === 0 && <Clock3 className="h-4 w-4 text-[var(--muted)]" />}</div>)}</div></div></div>;
 }
 
 function MockFrame({ title, children }: { title: string; children: React.ReactNode }) {
@@ -225,12 +234,12 @@ function MockFrame({ title, children }: { title: string; children: React.ReactNo
 export function FeaturesBento() {
   const t = useTranslations();
   const tiles = [
-    { icon: Cpu, title: "Machine board", span: "md:col-span-2 md:row-span-2" },
-    { icon: Gauge, title: "Live KPIs" },
-    { icon: LineChart, title: "Output trends" },
-    { icon: Shield, title: "Audit trail" },
-    { icon: Boxes, title: "Work orders" },
-    { icon: FileText, title: "Shift reports", span: "md:col-span-2" },
+    { icon: Cpu, title: "Machine board", body: "See every line at a glance, from running machines to stops that need attention.", span: "md:col-span-2 md:row-span-2", visual: "machine" },
+    { icon: Gauge, title: "Live KPIs", body: "Track target, actual output and efficiency through the shift.", visual: "kpi" },
+    { icon: LineChart, title: "Output trends", body: "Compare hourly production and spot slowdowns early.", visual: "chart" },
+    { icon: Shield, title: "Audit trail", body: "Know who recorded changes and when they happened.", visual: "audit" },
+    { icon: Boxes, title: "Work orders", body: "Keep styles, quantities and line assignments in sync.", visual: "orders" },
+    { icon: FileText, title: "Shift reports", body: "Hand over a clear summary of output, downtime and open issues.", span: "md:col-span-2", visual: "report" },
   ];
   return (
     <section id="features" className="py-28">
@@ -239,16 +248,28 @@ export function FeaturesBento() {
           {t("sections.features.title")}
         </h2>
         <div className="grid auto-rows-[180px] grid-cols-1 gap-4 md:grid-cols-4">
-          {tiles.map(({ icon: Icon, title, span }) => (
-            <SpotlightTile key={title} className={span}>
+          {tiles.map(({ icon: Icon, title, body, span, visual }) => (
+            <SpotlightTile key={title} className={`${span ?? ""} feature-${visual}`}>
               <Icon className="h-5 w-5 text-[var(--accent)]" />
               <h3 className="mt-6 text-xl font-semibold tracking-tight">{title}</h3>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--muted)]">{body}</p>
+              <FeatureVisual kind={visual} />
             </SpotlightTile>
           ))}
         </div>
       </div>
     </section>
   );
+}
+
+function FeatureVisual({ kind }: { kind: string }) {
+  const frame = "pointer-events-none absolute right-4 top-4 flex h-20 w-32 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)]/80 p-2 opacity-55 md:right-6 md:top-6";
+  if (kind === "machine") return <div aria-hidden="true" className={`${frame} h-24 w-36`}><div className="grid w-full grid-cols-4 gap-1">{Array.from({ length: 12 }, (_, i) => <span key={i} className="h-4 rounded-sm border border-[var(--border)]" style={{ background: i % 5 === 0 ? "var(--accent)" : i % 4 === 0 ? "var(--status-running)" : "color-mix(in srgb, var(--accent) 12%, var(--surface))" }} />)}</div></div>;
+  if (kind === "kpi") return <div aria-hidden="true" className={frame}><div className="flex items-center gap-2"><span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "conic-gradient(var(--accent) 0 82%, var(--border) 82% 100%)" }}><span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface)] text-[9px] font-semibold">82%</span></span><span className="space-y-1"><i className="block h-1 w-10 rounded bg-[var(--accent)]"/><i className="block h-1 w-7 rounded bg-[var(--border)]"/></span></div></div>;
+  if (kind === "chart") return <div aria-hidden="true" className={frame}><svg viewBox="0 0 120 60" className="h-full w-full" fill="none"><path d="M4 48 23 40 39 44 57 22 75 29 94 12 116 17" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 55H116" stroke="var(--border)" strokeWidth="1"/></svg></div>;
+  if (kind === "audit") return <div aria-hidden="true" className={`${frame} justify-start`}><div className="space-y-2 border-l border-[var(--accent)] pl-2"><p className="flex items-center gap-1 text-[8px]"><i className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]"/>Output recorded</p><p className="flex items-center gap-1 text-[8px] text-[var(--muted)]"><i className="h-1.5 w-1.5 rounded-full bg-[var(--border)]"/>Order updated</p><p className="flex items-center gap-1 text-[8px] text-[var(--muted)]"><i className="h-1.5 w-1.5 rounded-full bg-[var(--border)]"/>Shift started</p></div></div>;
+  if (kind === "orders") return <div aria-hidden="true" className={frame}><div className="w-full space-y-1.5"><p className="mb-2 text-[8px] font-semibold uppercase tracking-wider text-[var(--muted)]">Active orders</p>{[["WO-2048", "72%"], ["WO-2051", "46%"]].map(([order, progress]) => <div key={order} className="flex items-center justify-between rounded border border-[var(--border)] px-1.5 py-1 text-[8px]"><span>{order}</span><span className="text-[var(--accent)]">{progress}</span></div>)}</div></div>;
+  return <div aria-hidden="true" className={`${frame} h-24 w-36`}><div className="w-full rounded border border-[var(--border)] p-2"><p className="mb-2 text-[8px] font-semibold uppercase tracking-wider text-[var(--muted)]">Shift summary</p><div className="grid grid-cols-3 gap-1">{["Output", "Downtime", "Issues"].map((label, i) => <span key={label} className="rounded bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface))] p-1 text-center"><b className="block text-[9px]">{["986", "24m", "02"][i]}</b><i className="text-[6px] not-italic text-[var(--muted)]">{label}</i></span>)}</div></div></div>;
 }
 
 function SpotlightTile({ children, className }: { children: React.ReactNode; className?: string }) {

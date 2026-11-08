@@ -22,6 +22,7 @@ import { ProgressRing } from "@/components/operator/ProgressRing";
 import { ConnectionBadge } from "@/components/data/ConnectionBadge";
 import { ThemeToggle } from "@/components/theme";
 import { OPERATOR_DOUBLE_TAP_LOCK_MS, OPERATOR_UNDO_WINDOW_MS } from "@/lib/constants";
+import { useConnectionStore } from "@/stores/connection";
 import { cn, newIdempotencyKey, vibrate } from "@/lib/utils";
 import { useOperatorQueue } from "@/stores/operator-queue";
 import { operatorKeys, useStation, useStationIssues } from "@/features/operator/hooks";
@@ -60,6 +61,29 @@ export default function OperatorPage() {
   const station = stationQ.data;
   const issuesQ = useStationIssues(!!station);
   const openIssues: StationIssue[] = issuesQ.data ?? [];
+  const setConnectionStatus = useConnectionStore((s) => s.setStatus);
+
+  // The operator terminal uses API polling and queued sync rather than the staff
+  // Socket.IO connection. Reflect the station API result in its connection badge.
+  useEffect(() => {
+    if (!navigator.onLine) setConnectionStatus("offline");
+    else if (stationQ.isSuccess) setConnectionStatus("live");
+    else if (stationQ.isError) setConnectionStatus("offline");
+  }, [stationQ.isSuccess, stationQ.isError, stationQ.dataUpdatedAt, setConnectionStatus]);
+
+  useEffect(() => {
+    const onOffline = () => setConnectionStatus("offline");
+    const onOnline = () => {
+      setConnectionStatus("reconnecting");
+      void qc.invalidateQueries({ queryKey: operatorKeys.station });
+    };
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [qc, setConnectionStatus]);
 
   const enqueue = useOperatorQueue((s) => s.enqueue);
   const queuedQty = useOperatorQueue((s) =>
