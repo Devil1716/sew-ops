@@ -33,8 +33,8 @@ const nextConfig: NextConfig = {
 
     if (!rawBackendUrl) {
       if (process.env.NODE_ENV === "production" && process.env.VERCEL) {
-        console.warn(
-          "\x1b[33m[SewOps Web Warning]\x1b[0m INTERNAL_API_URL is not defined! Rewrites for /v1, /health, and /socket.io are inactive. Set INTERNAL_API_URL in your Vercel Project settings to point to your deployed NestJS API (e.g. https://sew-ops-api.vercel.app)."
+        throw new Error(
+          "[SewOps Web] INTERNAL_API_URL is required for Vercel production builds. Set it to the deployed SewOps API origin (for example, https://sew-ops-api.vercel.app) so /v1, /health, and /socket.io are routed correctly."
         );
       }
       return [];
