@@ -62,6 +62,10 @@ async function main() {
     ], { capture: true });
 
     if (diff.status !== 0) {
+      if (diff.stdout?.trim()) {
+        console.error('Schema-only Prisma diff:');
+        console.error(diff.stdout.trim());
+      }
       throw new Error(
         'Production schema differs from the current Prisma schema. Refusing to baseline automatically; inspect the database before applying migrations.',
       );
