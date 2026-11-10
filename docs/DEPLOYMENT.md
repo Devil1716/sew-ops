@@ -75,7 +75,7 @@ Create two projects from the same Git repository. In **both** projects, set Root
 | Install Command | `cd ../.. && npm ci` (set in app `vercel.json`) | `cd ../.. && npm ci` (set in app `vercel.json`) |
 | Build Command | `cd ../.. && npm run build:web` (set in app `vercel.json`) | `cd ../.. && npm run build:api` (set in app `vercel.json`) |
 | Output Directory | `.next` (default) | No static output override; the API is served by the function entrypoint under `apps/api/api/index.ts` |
-| Node.js | 22.x recommended; repository engine is `>=20` | 22.x recommended; repository engine is `>=20` |
+| Node.js | 22.x recommended; repository engine is `>=20` | 22.x required for NestJS 12 ESM interoperability; pinned in `apps/api/package.json` |
 
 The install command returns to the workspace root so npm uses the repository lockfile and installs all workspaces; the repo's postinstall generates Prisma Client. The web build builds `@sew-ops/shared`, then the web workspace. The API build builds shared first, then the API workspace (including Nest compilation). `apps/api/api/index.ts` exports the cached Nest/Express handler and `apps/api/vercel.json` routes requests to it. Root Directory is a Vercel dashboard setting and must be set separately for each project. The API project is already configured at `apps/api`; change the no-production project `sew-ops-i3u5` to `apps/web`. **NOT VERIFIED:** Vercel has not yet exercised the committed app configuration and handler routing. Confirm the API deployment exposes `GET /health` and preserves `/v1/*` request paths before directing production traffic.
 
