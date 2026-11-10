@@ -3,7 +3,7 @@
   "version": 2,
   "framework": "nestjs",
   "installCommand": "cd ../.. && npm ci",
-  "buildCommand": "cd ../.. && node apps/api/scripts/migrate-deploy-safe.cjs && npm run build:api",
+  "buildCommand": "cd ../.. && npm run build:api",
   "rewrites": [
     {
       "source": "/(.*)",
