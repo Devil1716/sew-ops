@@ -69,15 +69,15 @@ Create two projects from the same Git repository. In **both** projects, set Root
 
 | Setting | Web project | API project |
 |---|---|---|
-| Project | `sew-ops-web` | `sew-ops-api` |
+| Project | `sew-ops-i3u5` (current Vercel web project) | `sew-ops` (current Vercel API project) |
 | Root Directory | `apps/web` | `apps/api` |
-| Framework Preset | Next.js | NestJS (auto-detected; if Vercel does not detect it, select Other and keep the existing `apps/api/vercel.json` routing) |
-| Install Command | `cd ../.. && npm ci` | `cd ../.. && npm ci` |
-| Build Command | `cd ../.. && npm run build:web` | `cd ../.. && npm run build:api` |
+| Framework Preset | Next.js (set by `apps/web/vercel.json`) | NestJS (set by `apps/api/vercel.json`) |
+| Install Command | `cd ../.. && npm ci` (set in app `vercel.json`) | `cd ../.. && npm ci` (set in app `vercel.json`) |
+| Build Command | `cd ../.. && npm run build:web` (set in app `vercel.json`) | `cd ../.. && npm run build:api` (set in app `vercel.json`) |
 | Output Directory | `.next` (default) | No static output override; the API is served by the function entrypoint under `apps/api/api/index.ts` |
 | Node.js | 22.x recommended; repository engine is `>=20` | 22.x recommended; repository engine is `>=20` |
 
-The install command returns to the workspace root so npm uses the repository lockfile and installs all workspaces; the repo's postinstall generates Prisma Client. The web build builds `@sew-ops/shared`, then the web workspace. The API build builds shared first, then the API workspace (including Nest compilation). `apps/api/api/index.ts` exports the cached Nest/Express handler and `apps/api/vercel.json` routes requests to it. **NOT VERIFIED:** these exact Vercel dashboard settings and handler routing have not been exercised on a Vercel deployment. Confirm the first API deployment exposes `GET /health` and preserves `/v1/*` request paths before directing production traffic.
+The install command returns to the workspace root so npm uses the repository lockfile and installs all workspaces; the repo's postinstall generates Prisma Client. The web build builds `@sew-ops/shared`, then the web workspace. The API build builds shared first, then the API workspace (including Nest compilation). `apps/api/api/index.ts` exports the cached Nest/Express handler and `apps/api/vercel.json` routes requests to it. Root Directory is a Vercel dashboard setting and must be set separately for each project. The API project is already configured at `apps/api`; change the no-production project `sew-ops-i3u5` to `apps/web`. **NOT VERIFIED:** Vercel has not yet exercised the committed app configuration and handler routing. Confirm the API deployment exposes `GET /health` and preserves `/v1/*` request paths before directing production traffic.
 
 `INTERNAL_API_URL` is a **build-time** variable for the web project because `next.config.ts` creates rewrites while the deployment is built. Set it before the first web deployment and redeploy whenever it changes. For Production, set it to the API project's deployment origin, e.g. `https://sew-ops-api.vercel.app`. For Preview, use the matching API Preview deployment origin if Preview environments are enabled.
 
