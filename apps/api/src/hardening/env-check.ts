@@ -41,6 +41,15 @@ export function inspectEnvironment(env: NodeJS.ProcessEnv = process.env): EnvRep
 
   const productionOnly: string[] = [];
   if (production) {
+    if (!env.DIRECT_URL) {
+      productionOnly.push('DIRECT_URL must be set to the hosted PostgreSQL direct connection string for migrations.');
+    }
+    const redisUrl = env.REALTIME_REDIS_URL ?? env.REDIS_URL ?? '';
+    if (!redisUrl) {
+      productionOnly.push('REALTIME_REDIS_URL (or REDIS_URL) must be set to a hosted Redis connection string.');
+    } else if (!/^rediss?:\/\//.test(redisUrl)) {
+      productionOnly.push('REALTIME_REDIS_URL (or REDIS_URL) must use redis:// or rediss://.');
+    }
     const origins = cors.split(',').map((o) => o.trim()).filter(Boolean);
     if (!origins.every((origin) => origin.startsWith('https://'))) {
       productionOnly.push('CORS_ORIGIN must use https:// in production.');
