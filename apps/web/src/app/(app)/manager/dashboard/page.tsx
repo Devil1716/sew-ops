@@ -65,7 +65,11 @@ export default function DashboardPage() {
     if (lineIdsForGarment && !lineIdsForGarment.has(issue.lineId)) return false;
     return true;
   });
-  const machineOptions = (machines.data ?? []).filter((m) => !lineId || m.lineId === lineId);
+  const machineOptions = (machines.data ?? []).filter((m) => {
+    if (lineId && m.lineId !== lineId) return false;
+    if (lineIdsForGarment && !lineIdsForGarment.has(m.lineId)) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6 py-4">
@@ -105,7 +109,10 @@ export default function DashboardPage() {
         <FilterSelect
           label={t("dashboard.filterGarment")}
           value={garment}
-          onChange={setGarment}
+          onChange={(value) => {
+            setGarment(value);
+            setMachineId("");
+          }}
           options={[{ value: "", label: "All" }, ...garments.map((g) => ({ value: g, label: g }))]}
         />
         <FilterSelect
