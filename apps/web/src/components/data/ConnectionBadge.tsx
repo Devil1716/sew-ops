@@ -1,16 +1,11 @@
 "use client";
-import { useConnectionStore } from "@/stores/connection";
+import { connectionColor, connectionLabel, useConnectionStore } from "@/stores/connection";
 import { cn } from "@/lib/utils";
 
 export function ConnectionBadge({ className }: { className?: string }) {
   const status = useConnectionStore((s) => s.status);
-  const label = status === "live" ? "Live" : status === "reconnecting" ? "Reconnecting" : "Offline";
-  const dotVar =
-    status === "live"
-      ? "var(--status-running)"
-      : status === "reconnecting"
-        ? "var(--status-idle)"
-        : "var(--status-offline)";
+  const label = connectionLabel(status);
+  const dotVar = connectionColor(status);
   return (
     <span
       className={cn(

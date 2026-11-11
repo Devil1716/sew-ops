@@ -6,10 +6,12 @@ import { DataTable } from "@/components/data/DataTable";
 import { ErrorState } from "@/components/data/ErrorState";
 import { RowSkeleton } from "@/components/data/Skeletons";
 import { useLineProgress, type LineProgressLive } from "@/features/kpis/hooks";
+import { useSession } from "@/lib/auth/session";
 import { useMachineBoard } from "@/features/machines/live";
 import { formatPercent } from "@/lib/utils";
 
 export default function LinesPage() {
+  const { data: me } = useSession();
   const lines = useLineProgress();
   const machines = useMachineBoard();
   const all = machines.data ?? [];
@@ -87,7 +89,14 @@ export default function LinesPage() {
       ) : lines.isError ? (
         <ErrorState message="Could not load lines." onRetry={() => lines.refetch()} />
       ) : (
-        <DataTable data={lines.data ?? []} columns={columns} emptyTitle="No lines yet" />
+        <DataTable
+          data={lines.data ?? []}
+          columns={columns}
+          emptyTitle="No lines yet"
+          emptyBody="Lines are created in Floor setup. A line has to exist before machines or work orders can be placed on it."
+          emptyActionLabel={me?.role === "admin" ? "Open floor setup" : undefined}
+          emptyActionHref={me?.role === "admin" ? "/admin/floor" : undefined}
+        />
       )}
     </div>
   );

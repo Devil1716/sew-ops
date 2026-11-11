@@ -1,3 +1,4 @@
+import { AreaGuard } from "@/components/auth/area-guard";
 import { Providers } from "@/components/providers-root";
 import { Sidebar } from "@/components/app-shell/Sidebar";
 import { Topbar } from "@/components/app-shell/Topbar";
@@ -9,6 +10,7 @@ import messages from "@/i18n/en.json";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Providers messages={messages} defaultTheme="light">
+      <AreaGuard>
       <div className="ops-app flex min-h-screen bg-[var(--bg)] text-[var(--text)]">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -19,6 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <CommandPalette />
         <OperatorSetupHelp />
       </div>
+      </AreaGuard>
     </Providers>
   );
 }

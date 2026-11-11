@@ -120,7 +120,7 @@ body {
   --surface: rgb(255 255 255 / 0.72);
   --border: rgb(255 255 255 / 0.88);
   --text: #232437;
-  --muted: #77788d;
+  --muted: #5c5e72;
   --accent: #f1715c;
   --accent-foreground: #fff;
   --shadow-1: 0 5px 18px rgb(100 91 140 / 0.07);
@@ -161,6 +161,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: 0 8px 24px rgb(100 91 140 / 0.06);
+  overflow: visible;
 }
 .dark .ops-app {
   --bg: #171722;

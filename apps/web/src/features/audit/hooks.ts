@@ -10,6 +10,7 @@ export interface AuditEntry {
   entityId: string | null;
   actorName: string | null;
   actorRole: string | null;
+  entityLabel: string | null;
   ip: string | null;
   before: unknown;
   after: unknown;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -7,12 +8,14 @@ export function EmptyState({
   body,
   actionLabel,
   onAction,
+  actionHref,
   className,
 }: {
   title: string;
   body?: string;
   actionLabel?: string;
   onAction?: () => void;
+  actionHref?: string;
   className?: string;
 }) {
   return (
@@ -41,7 +44,12 @@ export function EmptyState({
         <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
         {body && <p className="max-w-sm text-sm text-[var(--muted)]">{body}</p>}
       </div>
-      {actionLabel && onAction && (
+      {actionLabel && actionHref && (
+        <Button variant="primary" size="md" asChild>
+          <Link href={actionHref}>{actionLabel}</Link>
+        </Button>
+      )}
+      {actionLabel && onAction && !actionHref && (
         <Button variant="primary" size="md" onClick={onAction}>
           {actionLabel}
         </Button>

@@ -5,6 +5,7 @@ import { ArrowRight, Bot, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth/session";
+import { useUiStore } from "@/stores/ui";
 
 const setupSteps = [
   {
@@ -43,11 +44,14 @@ export function OperatorSetupHelp() {
   const pathname = usePathname();
   const { data: user } = useSession();
   const isAdmin = user?.role === "admin";
+  const open = useUiStore((s) => s.helpOpen);
+  const setOpen = useUiStore((s) => s.setHelpOpen);
+  const onStaffPage = pathname.startsWith("/manager") || pathname.startsWith("/admin");
 
-  if (!pathname.startsWith("/manager")) return null;
+  if (!onStaffPage) return null;
 
   return (
-    <Dialog.Root>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
         <button
           type="button"

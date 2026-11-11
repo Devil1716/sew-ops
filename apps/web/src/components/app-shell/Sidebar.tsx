@@ -58,7 +58,14 @@ export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
   const { data: me } = useSession();
-  const isAdmin = me?.role === "admin" || path.startsWith("/admin");
+  const isAdmin = me?.role === "admin";
+  const home = path.startsWith("/admin")
+    ? "/admin/dashboard"
+    : path.startsWith("/manager")
+      ? "/manager/dashboard"
+      : isAdmin
+        ? "/admin/dashboard"
+        : "/manager/dashboard";
 
   return (
     <aside
@@ -69,7 +76,7 @@ export function Sidebar() {
     >
       <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-3">
         {!collapsed && (
-          <Link href={isAdmin ? "/admin/dashboard" : "/manager/dashboard"} className="flex items-center gap-2">
+          <Link href={home} className="flex items-center gap-2">
             <ThreadMark />
             <span className="font-semibold tracking-tight">SewOps</span>
           </Link>
@@ -120,7 +127,7 @@ export function Sidebar() {
 function Group({ label, className }: { label: string | null; className?: string }) {
   if (!label) return null;
   return (
-    <div className={cn("px-2 pb-1 pt-2 text-[10px] uppercase tracking-widest text-[var(--muted)]", className)}>
+    <div className={cn("px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--text)_72%,transparent)]", className)}>
       {label}
     </div>
   );

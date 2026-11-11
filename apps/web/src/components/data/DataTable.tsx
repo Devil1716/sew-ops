@@ -12,19 +12,37 @@ export function DataTable<T>({
   data,
   columns,
   emptyTitle,
+  emptyBody,
+  emptyActionLabel,
+  emptyActionHref,
+  onEmptyAction,
   className,
 }: {
   data: T[];
   columns: ColumnDef<T, unknown>[];
   emptyTitle?: string;
+  emptyBody?: string;
+  emptyActionLabel?: string;
+  emptyActionHref?: string;
+  onEmptyAction?: () => void;
   className?: string;
 }) {
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
-  if (!data.length) return <EmptyState title={emptyTitle ?? "No data"} />;
+  if (!data.length) {
+    return (
+      <EmptyState
+        title={emptyTitle ?? "No data"}
+        body={emptyBody}
+        actionLabel={emptyActionLabel}
+        actionHref={emptyActionHref}
+        onAction={onEmptyAction}
+      />
+    );
+  }
   return (
     <div className={cn("app-surface overflow-hidden rounded-[var(--radius-lg)]", className)}>
       <table className="w-full border-collapse text-sm">
-        <thead className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+        <thead className="border-b border-[var(--border)] text-left text-xs font-semibold tracking-wide text-[color-mix(in_srgb,var(--text)_78%,transparent)]">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (

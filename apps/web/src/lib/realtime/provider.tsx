@@ -6,6 +6,7 @@ import { RT } from "@sew-ops/shared";
 import { refreshSession } from "@/lib/api/client";
 import { useSession } from "@/lib/auth/session";
 import { disconnectSocket, getSocket } from "@/lib/realtime/socket";
+import type { Socket } from "socket.io-client";
 import { useConnectionStore } from "@/stores/connection";
 
 const STAFF_AREA = /^\/(admin|manager)(\/|$)/;
@@ -34,6 +35,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     let failures = 0;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const pending = new Set<string>();
+    const markReady = () => {
+      (socket as Socket & { sewReady?: boolean }).sewReady = true;
+    };
 
     // Batch bursts: ten operators tapping at once cause a few refetches, not dozens.
     const schedule = (...roots: string[]) => {
@@ -49,10 +53,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
     const onReady = () => {
       failures = 0;
+      markReady();
       setStatus("live");
       void qc.invalidateQueries(); // catch up on anything missed while disconnected
     };
     const onDisconnect = (reason: string) => {
+      (socket as Socket & { sewReady?: boolean }).sewReady = false;
       setStatus("reconnecting");
       // The server drops sockets whose session expired: refresh it, then reconnect (bounded).
       if (reason === "io server disconnect") {
@@ -67,7 +73,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         });
       }
     };
-    const onConnectError = () => setStatus("reconnecting");
+    // Stay on Reconnecting only while a handshake is still likely. Repeated failures
+    // mean the socket is down; the badge and the floor status then both say Offline.
+    const onConnectError = () => {
+      failures += 1;
+      setStatus(failures >= 4 ? "offline" : "reconnecting");
+    };
 
     const onMachine = () => schedule("machines", "dashboard");
     const onPiece = () => schedule("dashboard", "work-orders");
@@ -83,6 +94,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socket.on(EV.issueAcknowledged, onIssue);
     socket.on(RT.IssueResolved, onIssue);
     socket.on(RT.WorkOrderUpdated, onWorkOrder);
+
+    if ((socket as Socket & { sewReady?: boolean }).sewReady && socket.connected) onReady();
+    if (!socket.connected) socket.connect();
 
     return () => {
       if (timer) clearTimeout(timer);

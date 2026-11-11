@@ -9,6 +9,7 @@ import { KpiCard } from "@/components/data/KpiCard";
 import { RateCard } from "@/components/data/RateCard";
 import { KpiSkeleton, RowSkeleton } from "@/components/data/Skeletons";
 import { describeError, inputClass } from "@/components/admin/kit";
+import { DateField } from "@/components/data/DateField";
 import { useFactoriesList } from "@/features/factories/hooks";
 import { defectLabel } from "@/features/quality/hooks";
 import {
@@ -146,14 +147,8 @@ export default function ReportsPage() {
             ))}
           </select>
         )}
-        <label className="space-y-1">
-          <span className="block text-xs text-[var(--muted)]">From</span>
-          <input className={`${inputClass} w-auto`} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs text-[var(--muted)]">To</span>
-          <input className={`${inputClass} w-auto`} type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
+        <DateField label="From" value={from} onChange={setFrom} />
+        <DateField label="To" value={to} onChange={setTo} />
         <div className="flex gap-2">
           {PRESETS.map((p) => (
             <Button

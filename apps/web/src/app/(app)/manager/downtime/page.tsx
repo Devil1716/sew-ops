@@ -109,7 +109,14 @@ export default function DowntimePage() {
       ) : list.isError ? (
         <ErrorState message="Could not load downtime." onRetry={() => list.refetch()} />
       ) : (
-        <DataTable data={rows} columns={columns} emptyTitle="No downtime in this period" />
+        <DataTable
+          data={rows}
+          columns={columns}
+          emptyTitle="No downtime in this period"
+          emptyBody="Stops and breakdowns are listed here after they are reported on the floor."
+          emptyActionLabel="View machines"
+          emptyActionHref="/manager/machines"
+        />
       )}
     </div>
   );
