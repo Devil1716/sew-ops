@@ -30,6 +30,8 @@ export function Topbar() {
         <button
           type="button"
           aria-label={t("app.help")}
+          title="Setup guide"
+          onClick={() => useUiStore.getState().setHelpOpen(true)}
           className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_6%,var(--surface))]"
         >
           <HelpCircle className="h-4 w-4" />

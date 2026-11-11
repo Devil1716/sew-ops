@@ -1,5 +1,6 @@
 "use client";
 import * as Dialog from "@radix-ui/react-dialog";
+import Link from "next/link";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -122,9 +123,13 @@ function ConfirmDialog({
   );
 }
 
-function CreateDialog({ onClose }: { onClose: () => void }) {
-  const { data: me } = useSession();
-  const factories = useFactoriesList().data ?? [];
+function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const session = useSession();
+  const me = session.data;
+  const factoryQuery = useFactoriesList();
+  const lineQuery = useLinesList();
+  const factories = factoryQuery.data ?? [];
+  const lines = lineQuery.data ?? [];
   const create = useCreateWorkOrder();
   const [factoryId, setFactoryId] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
@@ -149,8 +154,8 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
     create.mutate(
       {
         factoryId: effectiveFactory,
-        orderNumber: orderNumber.trim(),
-        styleCode: styleCode.trim(),
+        orderNumber: orderNumber.trim().toUpperCase(),
+        styleCode: styleCode.trim().toUpperCase(),
         garment: garment.trim(),
         quantityTarget: qty,
         plannedStart: new Date(`${start}T00:00:00`).toISOString(),
@@ -161,14 +166,31 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <Dialog.Content className="app-surface fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-4 overflow-y-auto rounded-[var(--radius-lg)] p-6">
+        <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/50" />
+        <Dialog.Content className="app-surface fixed left-1/2 top-1/2 z-[80] max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-4 overflow-y-auto rounded-[var(--radius-lg)] p-6">
           <Dialog.Title className="text-lg font-semibold tracking-tight">New work order</Dialog.Title>
           <Dialog.Description className="text-sm text-[var(--muted)]">
             It starts as Scheduled. Assign it to a line, then press Start.
           </Dialog.Description>
+          {session.isSuccess && factoryQuery.isSuccess && !effectiveFactory && (
+            <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm">
+              No factory is available for your account yet. An admin needs to create one before a work order can be saved.
+            </p>
+          )}
+          {lineQuery.isSuccess && lines.length === 0 && (
+            <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm">
+              Create a line first. You can save this order now, but it cannot be assigned until a line exists in Floor setup.{" "}
+              {me?.role === "admin" ? (
+                <Link href="/admin/floor" className="font-medium text-[var(--accent)] hover:underline" onClick={onClose}>
+                  Open floor setup
+                </Link>
+              ) : (
+                "An admin creates the line in Floor setup."
+              )}
+            </p>
+          )}
           {factories.length > 1 && (
             <Field label="Factory">
               <select className={inputClass} value={effectiveFactory} onChange={(e) => setFactoryId(e.target.value)}>
@@ -211,7 +233,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" disabled={create.isPending} onClick={submit}>
+            <Button type="button" variant="primary" disabled={create.isPending || !effectiveFactory} onClick={submit}>
               {create.isPending ? "Creating…" : "Create work order"}
             </Button>
           </div>
@@ -424,6 +446,7 @@ function ManageDialog({ wo, onClose }: { wo: LiveWorkOrder; onClose: () => void 
 }
 
 export default function WorkOrdersPage() {
+  const { data: me } = useSession();
   const list = useWorkOrderList();
   const lines = useLinesList();
   const update = useUpdateWorkOrder();
@@ -549,7 +572,7 @@ export default function WorkOrdersPage() {
           <h1 className="text-3xl font-semibold tracking-tight">Work Orders</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Plan production, assign it to the floor, and watch it complete.</p>
         </div>
-        <Button variant="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="button" variant="primary" onClick={() => setCreateOpen(true)}>
           New work order
         </Button>
       </header>
@@ -577,11 +600,18 @@ export default function WorkOrdersPage() {
         <DataTable
           data={visible}
           columns={columns}
-          emptyTitle={all.length === 0 ? "No work orders yet. Create the first one." : "No work orders with that status"}
+          emptyTitle={all.length === 0 ? "No work orders yet" : "No work orders with that status"}
+          emptyBody={
+            all.length === 0
+              ? "Create an order when you are ready. It can only run on the floor after a line exists in Floor setup."
+              : undefined
+          }
+          emptyActionLabel={all.length === 0 && me?.role === "admin" ? "Open floor setup" : undefined}
+          emptyActionHref={all.length === 0 && me?.role === "admin" ? "/admin/floor" : undefined}
         />
       )}
 
-      {createOpen && <CreateDialog onClose={() => setCreateOpen(false)} />}
+      <CreateDialog open={createOpen} onClose={() => setCreateOpen(false)} />
       {managed && <ManageDialog wo={managed} onClose={() => setManageId(null)} />}
       {completing && (
         <ConfirmDialog

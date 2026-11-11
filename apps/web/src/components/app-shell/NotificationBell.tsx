@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMarkAllRead, useMarkRead, useNotifications, type AppNotification } from "@/features/notifications/hooks";
@@ -11,15 +12,20 @@ import { cn } from "@/lib/utils";
 export function NotificationBell() {
   const t = useTranslations();
   const router = useRouter();
-  const { data } = useNotifications(8);
+  const list = useNotifications(8);
+  const { data, isError, isLoading } = list;
   const markRead = useMarkRead();
   const markAll = useMarkAllRead();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
 
   useEffect(() => {
     function onClick(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     }
     if (open) document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -40,7 +46,11 @@ export function NotificationBell() {
         type="button"
         aria-label={`${t("app.notifications")}${unread ? `, ${unread} unread` : ""}`}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          const rect = ref.current?.getBoundingClientRect();
+          if (rect) setAnchor({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+          setOpen((v) => !v);
+        }}
         className="relative inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_6%,var(--surface))]"
       >
         <Bell className="h-4 w-4" />
@@ -51,8 +61,12 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+      {open && anchor && createPortal(
+        <div
+          ref={panelRef}
+          style={{ top: anchor.top, right: anchor.right }}
+          className="fixed z-[80] w-80 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-xl"
+        >
           <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
             <span className="text-sm font-medium">{t("app.notifications")}</span>
             {unread > 0 && (
@@ -61,7 +75,11 @@ export function NotificationBell() {
               </button>
             )}
           </div>
-          {items.length === 0 ? (
+          {isLoading ? (
+            <p className="px-3 py-6 text-center text-sm text-[var(--muted)]">Loading notifications…</p>
+          ) : isError ? (
+            <p className="px-3 py-6 text-center text-sm text-[var(--muted)]">Couldn&apos;t load notifications. Try again in a moment.</p>
+          ) : items.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-[var(--muted)]">You are all caught up.</p>
           ) : (
             <ul className="max-h-96 divide-y divide-[var(--border)] overflow-y-auto">
@@ -91,7 +109,8 @@ export function NotificationBell() {
               See all notifications
             </Link>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

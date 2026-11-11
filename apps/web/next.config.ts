@@ -17,6 +17,9 @@ const standalone = process.env.NEXT_OUTPUT === "standalone";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Socket.IO's handshake is `/socket.io/?...`. Next's trailing-slash redirect
+  // answers that with 308 before the rewrite, and browsers drop the upgrade.
+  skipTrailingSlashRedirect: true,
   ...(standalone ? { output: "standalone" as const, outputFileTracingRoot: path.join(process.cwd(), "../..") } : {}),
   transpilePackages: ["@sew-ops/shared"],
   // Strip the dev-only fixtures module from production bundles.
@@ -43,20 +46,25 @@ const nextConfig: NextConfig = {
     // Strip trailing /v1 or / to obtain the backend base origin
     const backendOrigin = rawBackendUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
-    return [
-      {
-        source: "/v1/:path*",
-        destination: `${backendOrigin}/v1/:path*`,
-      },
-      {
-        source: "/health",
-        destination: `${backendOrigin}/health`,
-      },
-      {
-        source: "/socket.io/:path*",
-        destination: `${backendOrigin}/socket.io/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        // Exact paths first so `/socket.io/` is not rewritten to `/socket.io` (no slash),
+        // which the API then sees as a normal GET and Socket.IO never accepts the upgrade.
+        { source: "/socket.io", destination: `${backendOrigin}/socket.io/` },
+        { source: "/socket.io/", destination: `${backendOrigin}/socket.io/` },
+        { source: "/socket.io/:path*", destination: `${backendOrigin}/socket.io/:path*` },
+      ],
+      afterFiles: [
+        {
+          source: "/v1/:path*",
+          destination: `${backendOrigin}/v1/:path*`,
+        },
+        {
+          source: "/health",
+          destination: `${backendOrigin}/health`,
+        },
+      ],
+    };
   },
 };
 

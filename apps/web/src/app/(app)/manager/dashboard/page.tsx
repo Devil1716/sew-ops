@@ -1,4 +1,5 @@
 "use client";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { KpiCard } from "@/components/data/KpiCard";
 import { KpiSkeleton, RowSkeleton } from "@/components/data/Skeletons";
@@ -15,6 +16,10 @@ import {
 } from "@/features/kpis/hooks";
 import { useMachines } from "@/features/machines/hooks";
 import { useOpenIssues } from "@/features/issues/hooks";
+import { SetupChecklist } from "@/components/data/SetupChecklist";
+import { useLinesList } from "@/features/lines/hooks";
+import { useShiftsList } from "@/features/shifts/hooks";
+import { connectionColor, connectionLabel, useConnectionStore } from "@/stores/connection";
 import { formatCount, formatPercent } from "@/lib/utils";
 import type { Machine } from "@sew-ops/shared";
 
@@ -26,33 +31,104 @@ export default function DashboardPage() {
   const issues = useOpenIssues();
   const trend = useOutputTrend();
   const downtime = useDowntimeToday();
+  const lineList = useLinesList();
+  const shiftList = useShiftsList();
+  const floor = useConnectionStore((s) => s.status);
+  const [lineId, setLineId] = useState("");
+  const [machineId, setMachineId] = useState("");
+  const [garment, setGarment] = useState("");
+  const [shiftId, setShiftId] = useState("");
 
   const nothingYet = kpis.data && kpis.data.target === 0 && kpis.data.completed === 0;
+  const garments = useMemo(
+    () => [...new Set((lp.data ?? []).map((l) => l.garment).filter((g): g is string => !!g))].sort(),
+    [lp.data],
+  );
+  const lineIdsForGarment = useMemo(() => {
+    if (!garment) return null;
+    return new Set((lp.data ?? []).filter((l) => l.garment === garment).map((l) => l.lineId));
+  }, [garment, lp.data]);
+  const visibleLines = (lp.data ?? []).filter((l) => {
+    if (lineId && l.lineId !== lineId) return false;
+    if (lineIdsForGarment && !lineIdsForGarment.has(l.lineId)) return false;
+    return true;
+  });
+  const visibleMachines = (machines.data ?? []).filter((m) => {
+    if (lineId && m.lineId !== lineId) return false;
+    if (machineId && m.id !== machineId) return false;
+    if (lineIdsForGarment && !lineIdsForGarment.has(m.lineId)) return false;
+    return true;
+  });
+  const visibleIssues = (issues.data ?? []).filter((issue) => {
+    if (lineId && issue.lineId !== lineId) return false;
+    if (machineId && issue.machineId !== machineId) return false;
+    if (lineIdsForGarment && !lineIdsForGarment.has(issue.lineId)) return false;
+    return true;
+  });
+  const machineOptions = (machines.data ?? []).filter((m) => {
+    if (lineId && m.lineId !== lineId) return false;
+    if (lineIdsForGarment && !lineIdsForGarment.has(m.lineId)) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6 py-4">
       <header className="flex flex-wrap items-end justify-between gap-4 px-1 pb-1">
         <div>
-          <p className="font-data text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Manager workspace · Live overview</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--text)_78%,var(--accent))]">Manager workspace · Live overview</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">Production at a glance</h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">A shared view of today’s output, machine activity, and issues across the floor.</p>
         </div>
         <div className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-[var(--shadow-1)]">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--status-running)] shadow-[0_0_0_5px_color-mix(in_srgb,var(--status-running)_14%,transparent)]" />
-          <span className="font-medium">Floor status</span><span className="text-[var(--muted)]">Live</span>
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ background: connectionColor(floor), boxShadow: `0 0 0 5px color-mix(in srgb, ${connectionColor(floor)} 14%, transparent)` }}
+          />
+          <span className="font-medium">Floor status</span>
+          <span className="text-[color-mix(in_srgb,var(--text)_70%,transparent)]">{connectionLabel(floor)}</span>
         </div>
       </header>
       {/* Filter bar */}
-      <div className="app-surface flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2.5 text-xs text-[var(--muted)]">
-        {["filterDate", "filterLine", "filterMachine", "filterGarment", "filterShift"].map((k) => (
-          <button
-            key={k}
-            className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg)] px-2 py-1 hover:text-[var(--text)]"
-          >
-            {t(`dashboard.${k}`)}
-          </button>
-        ))}
+      <div className="app-surface flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2.5">
+        <FilterSelect label={t("dashboard.filterDate")} value="today" onChange={() => undefined} options={[{ value: "today", label: "Today" }]} />
+        <FilterSelect
+          label={t("dashboard.filterLine")}
+          value={lineId}
+          onChange={(value) => {
+            setLineId(value);
+            setMachineId("");
+          }}
+          options={[{ value: "", label: "All" }, ...(lineList.data ?? []).map((l) => ({ value: l.id, label: l.name }))]}
+        />
+        <FilterSelect
+          label={t("dashboard.filterMachine")}
+          value={machineId}
+          onChange={setMachineId}
+          options={[{ value: "", label: "All" }, ...machineOptions.map((m) => ({ value: m.id, label: m.code }))]}
+        />
+        <FilterSelect
+          label={t("dashboard.filterGarment")}
+          value={garment}
+          onChange={(value) => {
+            setGarment(value);
+            setMachineId("");
+          }}
+          options={[{ value: "", label: "All" }, ...garments.map((g) => ({ value: g, label: g }))]}
+        />
+        <FilterSelect
+          label={t("dashboard.filterShift")}
+          value={shiftId}
+          onChange={setShiftId}
+          options={[{ value: "", label: "All" }, ...(shiftList.data ?? []).filter((s) => s.isActive).map((s) => ({ value: s.id, label: s.name }))]}
+        />
       </div>
+      {shiftId && (
+        <p className="px-1 text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)]">
+          Today&apos;s totals include every shift. Line, machine, and garment narrow the boards below.
+        </p>
+      )}
+
+      <SetupChecklist />
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
@@ -107,11 +183,11 @@ export default function DashboardPage() {
           </CardHeader>
           {lp.isLoading ? (
             <RowSkeleton count={3} />
-          ) : !lp.data?.length ? (
-            <EmptyState title="No lines configured" />
+          ) : !visibleLines.length ? (
+            <EmptyState title="No lines configured" body="Lines are added in Floor setup. They show up here once a line exists." />
           ) : (
             <ul className="space-y-3">
-              {lp.data.map((l) => (
+              {visibleLines.map((l) => (
                 <li key={l.lineId} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{l.lineName}</span>
@@ -138,11 +214,11 @@ export default function DashboardPage() {
           </CardHeader>
           {machines.isLoading ? (
             <RowSkeleton count={4} />
-          ) : !machines.data?.length ? (
-            <EmptyState title="No machines" />
+          ) : !visibleMachines.length ? (
+            <EmptyState title="No machines" body="Add machines in Floor setup after a line exists." />
           ) : (
             <div className="grid grid-cols-4 gap-2 md:grid-cols-6 lg:grid-cols-8">
-              {machines.data.slice(0, 48).map((m: Machine) => (
+              {visibleMachines.slice(0, 48).map((m: Machine) => (
                 <div
                   key={m.id}
                   className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-2"
@@ -164,11 +240,11 @@ export default function DashboardPage() {
           </CardHeader>
           {issues.isLoading ? (
             <RowSkeleton count={5} />
-          ) : !issues.data?.length ? (
+          ) : !visibleIssues.length ? (
             <EmptyState title="No active issues" />
           ) : (
             <ul className="divide-y divide-[var(--border)]">
-              {issues.data.slice(0, 8).map((i) => (
+              {visibleIssues.slice(0, 8).map((i) => (
                 <li key={i.id} className="row-flash flex items-center justify-between py-2 text-sm">
                   <span className="flex flex-col">
                     <span>{t(`issue.${camelize(i.type)}`)}</span>
@@ -240,6 +316,36 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm shadow-[var(--shadow-1)]">
+      <span className="text-[color-mix(in_srgb,var(--text)_62%,transparent)]">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="cursor-pointer bg-transparent font-medium text-[var(--text)] outline-none"
+      >
+        {options.map((option) => (
+          <option key={option.value || "all"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

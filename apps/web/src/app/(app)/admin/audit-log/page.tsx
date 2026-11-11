@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { ErrorState } from "@/components/data/ErrorState";
 import { RowSkeleton } from "@/components/data/Skeletons";
 import { inputClass } from "@/components/admin/kit";
+import { DateField } from "@/components/data/DateField";
 import { useAuditLog } from "@/features/audit/hooks";
 import { useFactoriesList } from "@/features/factories/hooks";
 import { formatDateTime } from "@/lib/time";
@@ -75,14 +76,8 @@ export default function AuditLogPage() {
             ))}
           </select>
         </label>
-        <label className="space-y-1">
-          <span className="block text-xs text-[var(--muted)]">From</span>
-          <input className={`${inputClass} w-auto`} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs text-[var(--muted)]">To</span>
-          <input className={`${inputClass} w-auto`} type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
+        <DateField label="From" value={from} onChange={setFrom} />
+        <DateField label="To" value={to} onChange={setTo} />
         {(category || from || to) && (
           <Button
             size="sm"
@@ -109,7 +104,7 @@ export default function AuditLogPage() {
       ) : (
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--muted)]">
+            <thead className="border-b border-[var(--border)] text-xs font-semibold tracking-wide text-[color-mix(in_srgb,var(--text)_78%,transparent)]">
               <tr>
                 <th className="px-4 py-2 font-medium">When</th>
                 <th className="px-4 py-2 font-medium">Who</th>
@@ -127,13 +122,18 @@ export default function AuditLogPage() {
                     <tr>
                       <td className="whitespace-nowrap px-4 py-2 text-xs">{formatDateTime(e.createdAt)}</td>
                       <td className="px-4 py-2">
-                        {e.actorName ?? <span className="text-[var(--muted)]">System</span>}
-                        {e.actorRole && <span className="ml-2 text-xs capitalize text-[var(--muted)]">{e.actorRole}</span>}
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <span>{e.actorName ?? "System"}</span>
+                          {e.actorRole && (
+                            <span className="rounded-full bg-[color-mix(in_srgb,var(--text)_8%,transparent)] px-2 py-0.5 text-xs font-medium capitalize text-[color-mix(in_srgb,var(--text)_70%,transparent)]">
+                              {e.actorRole}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="px-4 py-2 capitalize">{describe(e.action)}</td>
-                      <td className="px-4 py-2 font-data text-xs text-[var(--muted)]">
-                        {e.entityType.replace(/_/g, " ")}
-                        {e.entityId ? ` ${e.entityId.slice(0, 8)}` : ""}
+                      <td className="px-4 py-2 text-sm">
+                        {e.entityLabel || e.entityType.replace(/_/g, " ")}
                       </td>
                       <td className="px-4 py-2 text-right">
                         {hasDetails && (

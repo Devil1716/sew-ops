@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/data/DataTable";
+import { EmptyState } from "@/components/data/EmptyState";
 import { ErrorState } from "@/components/data/ErrorState";
 import { RowSkeleton } from "@/components/data/Skeletons";
 import {
@@ -145,7 +146,20 @@ export default function ShiftsPage() {
       ) : list.isError ? (
         <ErrorState message="Could not load shifts." onRetry={() => list.refetch()} />
       ) : (
-        <DataTable data={rows} columns={columns} emptyTitle="No shifts yet. Create the first one." />
+        rows.length === 0 ? (
+          <EmptyState
+            title={list.data && list.data.length > 0 ? "No shifts to show" : "No shifts yet"}
+            body={
+              list.data && list.data.length > 0
+                ? "Inactive shifts are hidden. Turn on Show inactive to see them."
+                : "Operators can only sign in during a shift that covers the current time. Create the first one to open the floor."
+            }
+            actionLabel={!list.data?.length && activeFactory ? "New shift" : undefined}
+            onAction={!list.data?.length && activeFactory ? () => setModal({}) : undefined}
+          />
+        ) : (
+          <DataTable data={rows} columns={columns} />
+        )
       )}
 
       {modal && <ShiftModal factoryId={activeFactory} shift={modal.shift} onClose={() => setModal(null)} />}

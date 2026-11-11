@@ -12,7 +12,7 @@ export function canAccessArea(role: Role, area: Area): boolean {
 export function roleHome(role: Role): string {
   switch (role) {
     case "admin":
-      return "/admin/factories";
+      return "/admin/dashboard";
     case "manager":
       return "/manager/dashboard";
     case "operator":

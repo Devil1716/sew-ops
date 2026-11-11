@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-6 py-4">
       <header className="flex flex-wrap items-end justify-between gap-4 px-1">
         <div>
-          <p className="font-data text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Admin workspace · Overview</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--text)_78%,var(--accent))]">Admin workspace · Overview</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">Your production network</h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">A clear view of factory setup, floor capacity, and shift coverage.</p>
         </div>

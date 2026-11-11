@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Command, Search } from "lucide-react";
+import { useSession } from "@/lib/auth/session";
 import { useUiStore } from "@/stores/ui";
 
 interface Entry {
@@ -30,6 +31,8 @@ export function CommandPalette() {
   const setOpen = useUiStore((s) => s.setCommandOpen);
   const [q, setQ] = useState("");
   const router = useRouter();
+  const { data: me } = useSession();
+  const isAdmin = me?.role === "admin";
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -43,8 +46,11 @@ export function CommandPalette() {
   }, [setOpen]);
 
   const results = useMemo(
-    () => ENTRIES.filter((e) => e.label.toLowerCase().includes(q.toLowerCase())),
-    [q],
+    () =>
+      ENTRIES.filter((e) => (e.group === "Admin" ? isAdmin : true)).filter((e) =>
+        e.label.toLowerCase().includes(q.toLowerCase()),
+      ),
+    [q, isAdmin],
   );
 
   return (

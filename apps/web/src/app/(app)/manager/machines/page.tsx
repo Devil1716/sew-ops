@@ -10,6 +10,7 @@ import { RowSkeleton } from "@/components/data/Skeletons";
 import { StatusDot } from "@/components/data/StatusDot";
 import { Field, FormError, Modal, ModalActions, describeError, inputClass } from "@/components/admin/kit";
 import { useLineProgress } from "@/features/kpis/hooks";
+import { useSession } from "@/lib/auth/session";
 import { useMachineBoard, type LiveMachine } from "@/features/machines/live";
 import { useSetMaintenance } from "@/features/machines/maintenance";
 import { timeAgo } from "@/lib/time";
@@ -47,6 +48,7 @@ function StartMaintenanceModal({ machine, onClose }: { machine: LiveMachine; onC
 
 export default function MachinesPage() {
   const t = useTranslations();
+  const { data: me } = useSession();
   const machines = useMachineBoard();
   const lines = useLineProgress();
   const set = useSetMaintenance();
@@ -114,7 +116,12 @@ export default function MachinesPage() {
       ) : machines.isError ? (
         <ErrorState message="Could not load machines." onRetry={() => machines.refetch()} />
       ) : all.length === 0 ? (
-        <EmptyState title="No machines yet" body="An admin adds lines and machines. They appear here as soon as they exist." />
+        <EmptyState
+          title="No machines yet"
+          body="Machines are added in Floor setup, and a line has to exist first. They show up here as soon as they do."
+          actionLabel={me?.role === "admin" ? "Open floor setup" : undefined}
+          actionHref={me?.role === "admin" ? "/admin/floor" : undefined}
+        />
       ) : visible.length === 0 ? (
         <EmptyState title="No machines with that status" />
       ) : (

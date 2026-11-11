@@ -180,6 +180,13 @@ export default function IssuesPage() {
           data={list.data ?? []}
           columns={columns}
           emptyTitle={view === "unresolved" ? "No open issues" : "Nothing was resolved in the last 7 days"}
+          emptyBody={
+            view === "unresolved"
+              ? "Issues show up when an operator reports a problem from their terminal. Nothing is waiting right now."
+              : "Resolved issues from the last 7 days will be listed here."
+          }
+          emptyActionLabel="View machines"
+          emptyActionHref="/manager/machines"
         />
       )}
 

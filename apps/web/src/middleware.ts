@@ -16,7 +16,9 @@ function readRole(token: string | undefined): Role | null {
   try {
     const part = token.split(".")[1];
     if (!part) return null;
-    const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/"))) as {
+    const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded)) as {
       role?: string;
       exp?: number;
     };
@@ -56,5 +58,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/manager/:path*", "/admin/:path*", "/operator/:path*"],
+  matcher: ["/manager/:path*", "/manager", "/admin/:path*", "/admin", "/operator/:path*", "/operator"],
 };
